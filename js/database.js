@@ -1,7 +1,7 @@
 class Database {
     constructor() {
         this.dbName = 'ProMantDB';
-        this.dbVersion = 1;
+        this.dbVersion = 2;
         this.db = null;
     }
 
@@ -45,6 +45,14 @@ class Database {
                 }
                 if (!db.objectStoreNames.contains('notificaciones')) {
                     db.createObjectStore('notificaciones', { keyPath: 'id' });
+                }
+                if (!db.objectStoreNames.contains('visitas')) {
+                    const visitasStore = db.createObjectStore('visitas', { keyPath: 'id' });
+                    visitasStore.createIndex('edificio', 'edificio', { unique: false });
+                    visitasStore.createIndex('estado', 'estado', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('informesDiarios')) {
+                    db.createObjectStore('informesDiarios', { keyPath: 'id' });
                 }
                 if (!db.objectStoreNames.contains('listas')) {
                     db.createObjectStore('listas', { keyPath: 'key' });
@@ -113,7 +121,7 @@ class Database {
     }
 
     async importAll(data) {
-        const stores = ['tareas', 'incidencias', 'proveedores', 'fotos', 'cotizaciones', 'notificaciones', 'listas'];
+        const stores = ['tareas', 'visitas', 'incidencias', 'proveedores', 'fotos', 'cotizaciones', 'notificaciones', 'informesDiarios', 'listas'];
         for (const storeName of stores) {
             if (data[storeName]) {
                 await this.clear(storeName);
@@ -131,7 +139,7 @@ class Database {
 
     async exportAll() {
         const result = {};
-        const stores = ['tareas', 'incidencias', 'proveedores', 'fotos', 'cotizaciones', 'notificaciones', 'listas'];
+        const stores = ['tareas', 'visitas', 'incidencias', 'proveedores', 'fotos', 'cotizaciones', 'notificaciones', 'informesDiarios', 'listas'];
         for (const storeName of stores) {
             result[storeName] = await this.getAll(storeName);
         }
