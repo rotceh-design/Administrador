@@ -557,39 +557,82 @@ class MaintenanceApp {
             return;
         }
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const minDate = new Date(Math.min(...allItems.map(i => i.fecha.getTime())));
+        minDate.setDate(minDate.getDate() - 1);
         const maxDate = new Date(Math.max(...allItems.map(i => i.fecha.getTime())));
-        maxDate.setDate(maxDate.getDate() + 7);
+        maxDate.setDate(maxDate.getDate() + 14);
         const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
-        const dayWidth = 40;
-        const rowHeight = 40;
+        const dayWidth = 44;
+        const rowHeight = 52;
+        const headerHeight = 60;
 
-        let html = `<div class="gantt-wrapper"><div class="gantt-header" style="width:${totalDays * dayWidth}px">`;
-        for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
-            const dayNum = d.getDate();
-            const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-            html += `<div class="gantt-day ${isWeekend ? 'weekend' : ''}" style="width:${dayWidth}px"><span>${dayNum}</span></div>`;
-        }
-        html += '</div><div class="gantt-body">';
+        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-        allItems.forEach((item, idx) => {
-            const offset = Math.ceil((item.fecha - minDate) / (1000 * 60 * 60 * 24));
-            const color = item.type === 'Tarea' ? CATEGORY_COLORS[item.categoria] || '#6b7280' : '#8b5cf6';
-            const edColor = EDIFICIO_COLORS[item.edificio] || '#6b7280';
-            const width = item.type === 'Visita' ? 2 : 5;
-            html += `<div class="gantt-row" style="height:${rowHeight}px">
-                <div class="gantt-label" style="width:260px"><span class="edificio-dot" style="background:${edColor}"></span><span class="gantt-item-text">${item.label.substring(0, 30)}</span><span class="gantt-item-ed">${item.edificio}</span></div>
-                <div class="gantt-track" style="width:${totalDays * dayWidth}px">`;
-            for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
-                const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                html += `<div class="gantt-cell ${isWeekend ? 'weekend' : ''}" style="width:${dayWidth}px"></div>`;
-            }
-            html += `<div class="gantt-bar" style="left:${offset * dayWidth}px;width:${width * dayWidth}px;background:${color}" title="${item.label} (${item.estado})"></div>`;
-            html += `</div></div>`;
-        });
-
-        html += '</div></div>';
+        let html = `<div class="gantt-wrapper">
+            <div class="gantt-sidebar" style="padding-top:${headerHeight}px">
+                ${allItems.map(item => {
+                    const edColor = EDIFICIO_COLORS[item.edificio] || '#6b7280';
+                    const statusDot = item.estado === 'Completado' ? '#10b981' : item.estado === 'En Progreso' ? '#f59e0b' : '#94a3b8';
+                    return `<div class="gantt-sidebar-row" style="height:${rowHeight}px">
+                        <div class="gantt-sidebar-status" style="background:${statusDot}"></div>
+                        <div class="gantt-sidebar-info">
+                            <span class="gantt-sidebar-label">${item.label.substring(0, 28)}${item.label.length > 28 ? '...' : ''}</span>
+                            <span class="gantt-sidebar-meta"><span class="edificio-dot" style="background:${edColor}"></span>${item.edificio} · ${item.type}</span>
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>
+            <div class="gantt-chart-area">
+                <div class="gantt-header" style="width:${totalDays * dayWidth}px;height:${headerHeight}px">
+                    ${Array.from({ length: totalDays }, (_, i) => {
+                        const d = new Date(minDate);
+                        d.setDate(d.getDate() + i);
+                        const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                        const isToday = d.getTime() === today.getTime();
+                        const showMonth = d.getDate() === 1 || i === 0;
+                        return `<div class="gantt-day ${isWeekend ? 'weekend' : ''} ${isToday ? 'today' : ''}" style="width:${dayWidth}px">
+                            ${showMonth ? `<span class="gantt-month-label">${monthNames[d.getMonth()]}</span>` : ''}
+                            <span class="gantt-day-num ${isToday ? 'today-num' : ''}">${d.getDate()}</span>
+                            <span class="gantt-day-name">${dayNames[d.getDay()]}</span>
+                        </div>`;
+                    }).join('')}
+                </div>
+                <div class="gantt-body">
+                    ${allItems.map(item => {
+                        const offset = Math.ceil((item.fecha - minDate) / (1000 * 60 * 60 * 24));
+                        const color = item.type === 'Tarea' ? CATEGORY_COLORS[item.categoria] || '#6b7280' : '#8b5cf6';
+                        const bgColor = color + '20';
+                        const isCompleted = item.estado === 'Completado';
+                        const barWidth = item.type === 'Visita' ? 2 : Math.max(4, Math.min(8, 1 + Math.floor(Math.random() * 3)));
+                        return `<div class="gantt-row" style="height:${rowHeight}px">
+                            <div class="gantt-track" style="width:${totalDays * dayWidth}px">
+                                ${Array.from({ length: totalDays }, (_, i) => {
+                                    const d = new Date(minDate);
+                                    d.setDate(d.getDate() + i);
+                                    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                                    const isToday = d.getTime() === today.getTime();
+                                    return `<div class="gantt-cell ${isWeekend ? 'weekend' : ''} ${isToday ? 'today-col' : ''}" style="width:${dayWidth}px"></div>`;
+                                }).join('')}
+                                <div class="gantt-bar ${isCompleted ? 'completed' : ''}" style="left:${offset * dayWidth}px;width:${barWidth * dayWidth}px;background:${color}" title="${item.label} (${item.estado})">
+                                    <span class="gantt-bar-label">${item.label.substring(0, 15)}</span>
+                                </div>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                    <div class="gantt-today-line" style="left:${Math.ceil((today - minDate) / (1000 * 60 * 60 * 24)) * dayWidth}px;height:${allItems.length * rowHeight}px"></div>
+                </div>
+            </div>
+        </div>`;
         container.innerHTML = html;
+
+        const chartArea = container.querySelector('.gantt-chart-area');
+        if (chartArea) {
+            const todayOffset = Math.ceil((today - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+            chartArea.scrollLeft = Math.max(0, todayOffset - chartArea.clientWidth / 3);
+        }
     }
 
     // =================== INCIDENCIAS ===================
@@ -656,34 +699,87 @@ class MaintenanceApp {
 
         const list = document.getElementById('informesList');
         if (!list) return;
-        list.innerHTML = informes.length ? informes.map(inf => `
+        list.innerHTML = informes.length ? informes.map(inf => {
+            const tareasCount = inf.tareasResumen?.length || 0;
+            const visitasCount = inf.visitasResumen?.length || 0;
+            const incCount = inf.incidenciasResumen?.length || 0;
+            return `
             <div class="informe-card">
                 <div class="informe-header">
                     <div><span class="edificio-tag" style="background:${EDIFICIO_COLORS[inf.edificio] || '#6b7280'}">${inf.edificio}</span><span class="informe-date">${this.formatDate(inf.fecha)}</span></div>
                     <div class="informe-actions">
+                        <button class="btn-secondary btn-sm" onclick="app.printInforme('${inf.id}')"><i class="fas fa-print"></i></button>
                         <button class="btn-success btn-sm" onclick="app.editInforme('${inf.id}')"><i class="fas fa-edit"></i></button>
                         <button class="btn-danger btn-sm" onclick="app.deleteInforme('${inf.id}')"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
                 <div class="informe-body">
                     <h4>${inf.titulo}</h4>
-                    <p>${inf.descripcion}</p>
-                    ${inf.actividades ? `<div class="informe-actividades"><h5>Actividades realizadas:</h5><p>${inf.actividades}</p></div>` : ''}
-                    ${inf.observaciones ? `<div class="informe-obs"><h5>Observaciones:</h5><p>${inf.observaciones}</p></div>` : ''}
+                    <div class="informe-stats-row">
+                        <div class="informe-stat"><span class="informe-stat-num">${tareasCount}</span><span class="informe-stat-label">Tareas</span></div>
+                        <div class="informe-stat"><span class="informe-stat-num">${visitasCount}</span><span class="informe-stat-label">Visitas</span></div>
+                        <div class="informe-stat"><span class="informe-stat-num">${incCount}</span><span class="informe-stat-label">Incidencias</span></div>
+                    </div>
+                    ${inf.descripcion ? `<div class="informe-section"><h5><i class="fas fa-align-left"></i> Resumen</h5><p>${inf.descripcion}</p></div>` : ''}
+                    ${inf.tareasResumen?.length ? `<div class="informe-section"><h5><i class="fas fa-tasks"></i> Tareas del día</h5><ul>${inf.tareasResumen.map(t => `<li class="${t.completada ? 'done' : ''}"><span class="informe-item-dot" style="background:${t.completada ? '#10b981' : '#f59e0b'}"></span>${t.texto}</li>`).join('')}</ul></div>` : ''}
+                    ${inf.visitasResumen?.length ? `<div class="informe-section"><h5><i class="fas fa-clipboard-check"></i> Visitas realizadas</h5><ul>${inf.visitasResumen.map(v => `<li class="${v.completada ? 'done' : ''}"><span class="informe-item-dot" style="background:${v.completada ? '#10b981' : '#8b5cf6'}"></span>${v.texto}</li>`).join('')}</ul></div>` : ''}
+                    ${inf.incidenciasResumen?.length ? `<div class="informe-section"><h5><i class="fas fa-exclamation-triangle"></i> Incidencias</h5><ul>${inf.incidenciasResumen.map(i => `<li class="${i.completada ? 'done' : ''}"><span class="informe-item-dot" style="background:${i.completada ? '#10b981' : '#ef4444'}"></span>${i.texto}</li>`).join('')}</ul></div>` : ''}
+                    ${inf.pendientes ? `<div class="informe-section informe-pendientes"><h5><i class="fas fa-clock"></i> Pendientes para próximas fechas</h5><p>${inf.pendientes}</p></div>` : ''}
+                    ${inf.observaciones ? `<div class="informe-section"><h5><i class="fas fa-sticky-note"></i> Observaciones</h5><p>${inf.observaciones}</p></div>` : ''}
                 </div>
-            </div>`).join('') : '<div class="empty-state"><i class="fas fa-file-alt"></i><p>No hay informes diarios</p><button class="btn-primary" onclick="app.showNewInformeModal()"><i class="fas fa-plus"></i> Crear Primer Informe</button></div>';
+            </div>`;
+        }).join('') : '<div class="empty-state"><i class="fas fa-file-alt"></i><p>No hay informes diarios</p><button class="btn-primary" onclick="app.showNewInformeModal()"><i class="fas fa-plus"></i> Crear Primer Informe</button></div>';
     }
 
     getInformeForm(inf = null) {
         const eds = this.data.listas.edificios || [];
+        const fecha = inf?.fecha || new Date().toISOString().split('T')[0];
+        const fechafn = new Date(fecha + 'T00:00:00');
+
+        const dayTareas = (this.data.tareas || []).filter(t => t.fecha === fecha);
+        const dayVisitas = (this.data.visitas || []).filter(v => v.fecha === fecha);
+        const dayIncidencias = (this.data.incidencias || []).filter(i => i.fecha === fecha);
+        const pendingTareas = (this.data.tareas || []).filter(t => t.fecha > fecha && t.estado !== 'Completado');
+
+        const summaryHTML = `
+            <div class="informe-auto-summary">
+                <p class="informe-auto-label"><i class="fas fa-magic"></i> Datos del ${this.formatDate(fecha)}:</p>
+                <div class="informe-auto-stats">
+                    <span><strong>${dayTareas.length}</strong> tareas (${dayTareas.filter(t => t.estado === 'Completado').length} completadas)</span>
+                    <span><strong>${dayVisitas.length}</strong> visitas (${dayVisitas.filter(v => v.estado === 'Completado').length} completadas)</span>
+                    <span><strong>${dayIncidencias.length}</strong> incidencias (${dayIncidencias.filter(i => i.estado === 'Completado').length} resueltas)</span>
+                </div>
+            </div>`;
+
+        const autoTareas = dayTareas.map(t => `<div class="informe-check-item"><input type="checkbox" class="inf-tarea-check" data-text="${t.actividad} - ${t.edificio}" ${t.estado === 'Completado' ? 'checked' : ''}><span>${t.actividad} (${t.edificio})</span></div>`).join('');
+        const autoVisitas = dayVisitas.map(v => `<div class="informe-check-item"><input type="checkbox" class="inf-visita-check" data-text="${v.motivo} - ${v.edificio}" ${v.estado === 'Completado' ? 'checked' : ''}><span>${v.motivo} (${v.edificio})</span></div>`).join('');
+        const autoIncidencias = dayIncidencias.map(i => `<div class="informe-check-item"><input type="checkbox" class="inf-incidencia-check" data-text="${i.descripcion} - ${i.edificio}" ${i.estado === 'Completado' ? 'checked' : ''}><span>${i.descripcion} (${i.edificio})</span></div>`).join('');
+        const pendientesHTML = pendingTareas.length ? `<p class="informe-pendientes-auto">${pendingTareas.map(t => `${t.actividad} (${t.edificio} - ${this.formatDate(t.fecha)})`).join(' · ')}</p>` : '';
+
         return `<form>
-            <div class="form-group"><label>Edificio *</label><select id="informeEdificio">${eds.map(e => `<option value="${e}" ${inf?.edificio === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
-            <div class="form-group"><label>Fecha *</label><input type="date" id="informeFecha" value="${inf?.fecha || new Date().toISOString().split('T')[0]}"></div>
-            <div class="form-group"><label>Título del Informe *</label><input type="text" id="informeTitulo" value="${inf?.titulo || ''}" placeholder="Ej: Mantención preventiva A/C"></div>
-            <div class="form-group"><label>Descripción general *</label><textarea id="informeDescripcion" rows="3" placeholder="Resumen del día...">${inf?.descripcion || ''}</textarea></div>
-            <div class="form-group"><label>Actividades realizadas</label><textarea id="informeActividades" rows="3" placeholder="Lista de actividades completadas...">${inf?.actividades || ''}</textarea></div>
-            <div class="form-group"><label>Observaciones</label><textarea id="informeObservaciones" rows="2" placeholder="Notas adicionales...">${inf?.observaciones || ''}</textarea></div>
+            <div class="form-group"><label>Edificio *</label><select id="informeEdificio" onchange="app._updateInformeSummary()">${eds.map(e => `<option value="${e}" ${inf?.edificio === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
+            <div class="form-group"><label>Fecha *</label><input type="date" id="informeFecha" value="${fecha}" onchange="app._updateInformeSummary()"></div>
+            ${summaryHTML}
+            <div class="form-group"><label>Título del Informe *</label><input type="text" id="informeTitulo" value="${inf?.titulo || ''}" placeholder="Ej: Informe diario de mantención"></div>
+            <div class="form-group"><label>Descripción / Resumen general *</label><textarea id="informeDescripcion" rows="3" placeholder="Resumen del día...">${inf?.descripcion || ''}</textarea></div>
+            ${dayTareas.length ? `<div class="form-group"><label><i class="fas fa-tasks"></i> Tareas del día</label><div class="informe-check-list" id="infTareasList">${autoTareas || ''}</div></div>` : ''}
+            ${dayVisitas.length ? `<div class="form-group"><label><i class="fas fa-clipboard-check"></i> Visitas del día</label><div class="informe-check-list" id="infVisitasList">${autoVisitas || ''}</div></div>` : ''}
+            ${dayIncidencias.length ? `<div class="form-group"><label><i class="fas fa-exclamation-triangle"></i> Incidencias del día</label><div class="informe-check-list" id="infIncidenciasList">${autoIncidencias || ''}</div></div>` : ''}
+            <div class="form-group"><label><i class="fas fa-clock"></i> Pendientes para próximas fechas</label><textarea id="informePendientes" rows="2" placeholder="Tareas pendientes, visitas futuras...">${inf?.pendientes || ''}</textarea>${pendientesHTML}</div>
+            <div class="form-group"><label><i class="fas fa-sticky-note"></i> Observaciones</label><textarea id="informeObservaciones" rows="2" placeholder="Notas adicionales...">${inf?.observaciones || ''}</textarea></div>
         </form>`;
+    }
+
+    _updateInformeSummary() {
+        const ed = document.getElementById('informeEdificio')?.value || '';
+        const fecha = document.getElementById('informeFecha')?.value || new Date().toISOString().split('T')[0];
+        const dayTareas = (this.data.tareas || []).filter(t => t.fecha === fecha && (!ed || t.edificio === ed));
+        const dayVisitas = (this.data.visitas || []).filter(v => v.fecha === fecha && (!ed || v.edificio === ed));
+        const dayIncidencias = (this.data.incidencias || []).filter(i => i.fecha === fecha && (!ed || i.edificio === ed));
+        const label = document.querySelector('.informe-auto-label');
+        if (label) label.innerHTML = `<i class="fas fa-magic"></i> Datos del ${this.formatDate(fecha)}:`;
+        const stats = document.querySelector('.informe-auto-stats');
+        if (stats) stats.innerHTML = `<span><strong>${dayTareas.length}</strong> tareas (${dayTareas.filter(t => t.estado === 'Completado').length} completadas)</span><span><strong>${dayVisitas.length}</strong> visitas (${dayVisitas.filter(v => v.estado === 'Completado').length} completadas)</span><span><strong>${dayIncidencias.length}</strong> incidencias (${dayIncidencias.filter(i => i.estado === 'Completado').length} resueltas)</span>`;
     }
 
     showNewInformeModal() {
@@ -691,7 +787,16 @@ class MaintenanceApp {
     }
 
     async saveInforme(id = null) {
-        const d = { edificio: this.gv('informeEdificio'), fecha: this.gv('informeFecha'), titulo: this.gv('informeTitulo'), descripcion: this.gv('informeDescripcion'), actividades: this.gv('informeActividades'), observaciones: this.gv('informeObservaciones') };
+        const getTareas = () => Array.from(document.querySelectorAll('.inf-tarea-check')).map(el => ({ texto: el.dataset.text, completada: el.checked }));
+        const getVisitas = () => Array.from(document.querySelectorAll('.inf-visita-check')).map(el => ({ texto: el.dataset.text, completada: el.checked }));
+        const getIncidencias = () => Array.from(document.querySelectorAll('.inf-incidencia-check')).map(el => ({ texto: el.dataset.text, completada: el.checked }));
+
+        const d = {
+            edificio: this.gv('informeEdificio'), fecha: this.gv('informeFecha'), titulo: this.gv('informeTitulo'),
+            descripcion: this.gv('informeDescripcion'), observaciones: this.gv('informeObservaciones'),
+            pendientes: this.gv('informePendientes'),
+            tareasResumen: getTareas(), visitasResumen: getVisitas(), incidenciasResumen: getIncidencias()
+        };
         if (id) { const i = this.data.informesDiarios.findIndex(x => x.id === id); if (i !== -1) { d.id = id; this.data.informesDiarios[i] = { ...this.data.informesDiarios[i], ...d }; await db.put('informesDiarios', this.data.informesDiarios[i]); } }
         else { d.id = 'INF-' + Date.now(); this.data.informesDiarios.push(d); await db.put('informesDiarios', d); }
         this.closeModal(); this.renderInformes(); this.showToast(id ? 'Informe actualizado' : 'Informe creado', 'success');
@@ -699,6 +804,45 @@ class MaintenanceApp {
 
     editInforme(id) { const i = this.data.informesDiarios.find(x => x.id === id); if (i) this.showModal('Editar Informe', this.getInformeForm(i), () => this.saveInforme(i.id)); }
     async deleteInforme(id) { if (!confirm('¿Eliminar informe?')) return; this.data.informesDiarios = this.data.informesDiarios.filter(i => i.id !== id); await db.delete('informesDiarios', id); this.renderInformes(); this.showToast('Informe eliminado', 'success'); }
+
+    printInforme(id) {
+        const inf = this.data.informesDiarios.find(x => x.id === id);
+        if (!inf) return;
+        const edColor = EDIFICIO_COLORS[inf.edificio] || '#6b7280';
+        const section = (title, icon, items, color) => items?.length ? `<div class="section"><h3><i class="${icon}"></i> ${title}</h3><ul>${items.map(i => `<li style="border-left-color:${i.completada ? '#10b981' : color}"><span class="dot" style="background:${i.completada ? '#10b981' : color}"></span>${i.texto} ${i.completada ? '✓' : ''}</li>`).join('')}</ul></div>` : '';
+
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+            body{font-family:Arial,sans-serif;margin:30px;color:#1e293b;line-height:1.6}
+            .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid ${edColor};padding-bottom:12px;margin-bottom:20px}
+            h1{font-size:22px;margin:0} h2{font-size:14px;color:#64748b;margin:4px 0 0}
+            .tag{background:${edColor};color:white;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600}
+            .stats{display:flex;gap:20px;margin:16px 0;padding:12px;background:#f8fafc;border-radius:8px}
+            .stat{text-align:center} .stat strong{font-size:24px;display:block;color:${edColor}} .stat span{font-size:12px;color:#64748b}
+            .section{margin:16px 0} .section h3{font-size:14px;color:#475569;border-bottom:1px solid #e2e8f0;padding-bottom:6px}
+            ul{list-style:none;padding:0} li{padding:6px 12px;border-left:3px solid #ccc;margin:4px 0;background:#f8fafc;border-radius:0 4px 4px 0;font-size:13px}
+            .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
+            .obs,.pend{margin:16px 0;padding:12px;border-radius:8px;font-size:13px}
+            .obs{background:#fffbeb;border:1px solid #fde68a} .pend{background:#fef2f2;border:1px solid #fecaca}
+            @media print{body{margin:15px}}
+        </style></head><body>
+            <div class="header"><div><h1>${inf.titulo}</h1><h2>Facility Management · ${this.formatDate(inf.fecha)}</h2></div><span class="tag">${inf.edificio}</span></div>
+            <div class="stats">
+                <div class="stat"><strong>${inf.tareasResumen?.length || 0}</strong><span>Tareas</span></div>
+                <div class="stat"><strong>${inf.visitasResumen?.length || 0}</strong><span>Visitas</span></div>
+                <div class="stat"><strong>${inf.incidenciasResumen?.length || 0}</strong><span>Incidencias</span></div>
+            </div>
+            ${inf.descripcion ? `<div class="section"><h3>Resumen</h3><p>${inf.descripcion}</p></div>` : ''}
+            ${section('Tareas del día', 'fa-tasks', inf.tareasResumen, '#3b82f6')}
+            ${section('Visitas realizadas', 'fa-clipboard-check', inf.visitasResumen, '#8b5cf6')}
+            ${section('Incidencias', 'fa-exclamation-triangle', inf.incidenciasResumen, '#ef4444')}
+            ${inf.pendientes ? `<div class="pend"><h3 style="margin:0 0 8px;font-size:14px"><i class="fas fa-clock"></i> Pendientes</h3><p style="margin:0">${inf.pendientes}</p></div>` : ''}
+            ${inf.observaciones ? `<div class="obs"><h3 style="margin:0 0 8px;font-size:14px"><i class="fas fa-sticky-note"></i> Observaciones</h3><p style="margin:0">${inf.observaciones}</p></div>` : ''}
+        </body></html>`;
+        const w = window.open('', '_blank');
+        w.document.write(html);
+        w.document.close();
+        setTimeout(() => w.print(), 500);
+    }
 
     // =================== PROVEEDORES ===================
     renderProveedores() {
