@@ -1,123 +1,74 @@
 class Database {
     constructor() {
-        this.dbName = 'ProMantDB';
-        this.dbVersion = 2;
         this.db = null;
+        this._fb = null;
+        this._ready = false;
     }
 
     async init() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.dbName, this.dbVersion);
+        if (this._ready) return;
 
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => {
-                this.db = request.result;
-                resolve(this.db);
-            };
+        if (window._firestore && window._fb) {
+            this.db = window._firestore;
+            this._fb = window._fb;
+            this._ready = true;
+            return;
+        }
 
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-
-                if (!db.objectStoreNames.contains('config')) {
-                    db.createObjectStore('config', { keyPath: 'key' });
-                }
-                if (!db.objectStoreNames.contains('tareas')) {
-                    const tareasStore = db.createObjectStore('tareas', { keyPath: 'id' });
-                    tareasStore.createIndex('categoria', 'categoria', { unique: false });
-                    tareasStore.createIndex('estado', 'estado', { unique: false });
-                    tareasStore.createIndex('fecha', 'fecha', { unique: false });
-                }
-                if (!db.objectStoreNames.contains('incidencias')) {
-                    const incStore = db.createObjectStore('incidencias', { keyPath: 'id' });
-                    incStore.createIndex('prioridad', 'prioridad', { unique: false });
-                    incStore.createIndex('estado', 'estado', { unique: false });
-                }
-                if (!db.objectStoreNames.contains('proveedores')) {
-                    db.createObjectStore('proveedores', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('fotos')) {
-                    const fotosStore = db.createObjectStore('fotos', { keyPath: 'id' });
-                    fotosStore.createIndex('categoria', 'categoria', { unique: false });
-                    fotosStore.createIndex('ubicacion', 'ubicacion', { unique: false });
-                }
-                if (!db.objectStoreNames.contains('cotizaciones')) {
-                    db.createObjectStore('cotizaciones', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('notificaciones')) {
-                    db.createObjectStore('notificaciones', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('visitas')) {
-                    const visitasStore = db.createObjectStore('visitas', { keyPath: 'id' });
-                    visitasStore.createIndex('edificio', 'edificio', { unique: false });
-                    visitasStore.createIndex('estado', 'estado', { unique: false });
-                }
-                if (!db.objectStoreNames.contains('informesDiarios')) {
-                    db.createObjectStore('informesDiarios', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('listas')) {
-                    db.createObjectStore('listas', { keyPath: 'key' });
+        return new Promise((resolve) => {
+            const check = () => {
+                if (window._firestore && window._fb) {
+                    this.db = window._firestore;
+                    this._fb = window._fb;
+                    this._ready = true;
+                    resolve();
+                } else {
+                    setTimeout(check, 50);
                 }
             };
+            check();
         });
     }
 
-    _getStore(storeName, mode = 'readonly') {
-        const tx = this.db.transaction(storeName, mode);
-        return tx.objectStore(storeName);
+    _col(name) {
+        return this._fb.collection(this.db, name);
+    }
+
+    _doc(name, id) {
+        return this._fb.doc(this.db, name, id);
     }
 
     async getAll(storeName) {
-        return new Promise((resolve, reject) => {
-            const store = this._getStore(storeName);
-            const request = store.getAll();
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
+        const snap = await this._fb.getDocs(this._col(storeName));
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
     async get(storeName, key) {
-        return new Promise((resolve, reject) => {
-            const store = this._getStore(storeName);
-            const request = store.get(key);
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
+        const snap = await this._fb.getDoc(this._doc(storeName, key));
+        return snap.exists() ? { id: snap.id, ...snap.data() } : undefined;
     }
 
     async put(storeName, data) {
-        return new Promise((resolve, reject) => {
-            const store = this._getStore(storeName, 'readwrite');
-            const request = store.put(data);
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
+        const id = data.id || data.key || String(Date.now());
+        const docData = { ...data, id };
+        await this._fb.setDoc(this._doc(storeName, id), docData);
+        return id;
     }
 
     async delete(storeName, key) {
-        return new Promise((resolve, reject) => {
-            const store = this._getStore(storeName, 'readwrite');
-            const request = store.delete(key);
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
-        });
+        await this._fb.deleteDoc(this._doc(storeName, key));
     }
 
     async clear(storeName) {
-        return new Promise((resolve, reject) => {
-            const store = this._getStore(storeName, 'readwrite');
-            const request = store.clear();
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
-        });
+        const snap = await this._fb.getDocs(this._col(storeName));
+        const batch = this._fb.writeBatch(this.db);
+        snap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
     }
 
     async count(storeName) {
-        return new Promise((resolve, reject) => {
-            const store = this._getStore(storeName);
-            const request = store.count();
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
+        const snap = await this._fb.getDocs(this._col(storeName));
+        return snap.size;
     }
 
     async importAll(data) {

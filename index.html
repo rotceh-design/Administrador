@@ -555,6 +555,25 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getFirestore, collection, doc, getDocs, getDoc, setDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCw5JVje1Jk6Ph03WiBdl7VOJYB49B77XU",
+            authDomain: "administrador-7a626.firebaseapp.com",
+            projectId: "administrador-7a626",
+            storageBucket: "administrador-7a626.firebasestorage.app",
+            messagingSenderId: "713621566981",
+            appId: "1:713621566981:web:1343f816a486c8fd3e8e6c",
+            measurementId: "G-WYNF6J8NH8"
+        };
+
+        const firebaseApp = initializeApp(firebaseConfig);
+        window._firestore = getFirestore(firebaseApp);
+        window._fb = { collection, doc, getDocs, getDoc, setDoc, deleteDoc, writeBatch };
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
     <script src="js/data.js"></script>
     <script src="js/database.js"></script>
     <script src="js/photos.js"></script>
