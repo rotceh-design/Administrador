@@ -819,13 +819,44 @@ body {
     margin-right: 6px;
 }
 
-/* =================== CRONOGRAMA 4 COLUMNAS =================== */
-.cronograma-4col {
+/* =================== CRONOGRAMA =================== */
+.cronograma-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1rem;
     min-height: 500px;
 }
+
+.cronograma-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.view-toggle {
+    display: flex;
+    background: var(--bg-main);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.view-toggle-btn {
+    padding: 0.4rem 0.85rem;
+    border: none;
+    background: transparent;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.view-toggle-btn:hover { color: var(--text-primary); }
+.view-toggle-btn.active { background: var(--primary); color: white; }
 
 .cronograma-col {
     background: var(--bg-card);
@@ -887,6 +918,10 @@ body {
 .crono-item i { font-size: 0.65rem; flex-shrink: 0; }
 .crono-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.crono-today { background: rgba(30, 64, 175, 0.06); border-radius: var(--radius-sm); }
+.crono-today .crono-day-num { background: var(--primary); color: white; }
+.crono-empty-day { color: var(--text-muted); font-style: italic; border-left-color: var(--border) !important; }
+
 .crono-empty {
     text-align: center;
     padding: 2rem 1rem;
@@ -895,11 +930,12 @@ body {
 }
 
 @media (max-width: 1024px) {
-    .cronograma-4col { grid-template-columns: repeat(2, 1fr); }
+    .cronograma-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 600px) {
-    .cronograma-4col { grid-template-columns: 1fr; }
+    .cronograma-grid { grid-template-columns: 1fr; }
+    .cronograma-controls { flex-wrap: wrap; }
 }
 
 /* =================== CARTA GANTT =================== */

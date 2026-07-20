@@ -4,8 +4,19 @@ class MaintenanceApp {
         this.currentSection = 'dashboard';
         this.currentMonth = new Date().getMonth();
         this.currentYear = new Date().getFullYear();
+        this.cronogramaView = 'monthly';
+        this.currentWeekStart = this._getWeekStart(new Date());
         this.chartCategorias = null;
         this.modalOnSave = null;
+    }
+
+    _getWeekStart(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        d.setDate(diff);
+        d.setHours(0, 0, 0, 0);
+        return d;
     }
 
     async init() {
@@ -99,8 +110,34 @@ class MaintenanceApp {
             if (e.key === 'Escape') { this.closeSearchModal(); this.closeModal(); }
         });
 
-        document.getElementById('prevMonth')?.addEventListener('click', () => { this.currentMonth--; if (this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; } this.renderCronograma(); });
-        document.getElementById('nextMonth')?.addEventListener('click', () => { this.currentMonth++; if (this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; } this.renderCronograma(); });
+        document.getElementById('prevPeriod')?.addEventListener('click', () => {
+            if (this.cronogramaView === 'monthly') {
+                this.currentMonth--; if (this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; }
+            } else {
+                this.currentWeekStart.setDate(this.currentWeekStart.getDate() - 7);
+            }
+            this.renderCronograma();
+        });
+        document.getElementById('nextPeriod')?.addEventListener('click', () => {
+            if (this.cronogramaView === 'monthly') {
+                this.currentMonth++; if (this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; }
+            } else {
+                this.currentWeekStart.setDate(this.currentWeekStart.getDate() + 7);
+            }
+            this.renderCronograma();
+        });
+        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.cronogramaView = btn.dataset.view;
+                if (this.cronogramaView === 'weekly') {
+                    this.currentWeekStart = this._getWeekStart(new Date());
+                }
+                this.renderCronograma();
+            });
+        });
+        document.getElementById('exportCronogramaPDF')?.addEventListener('click', () => this.exportCronogramaPDF());
 
         document.getElementById('nuevoInformeBtn')?.addEventListener('click', () => this.showNewInformeModal());
 
@@ -330,27 +367,42 @@ class MaintenanceApp {
     editVisita(id) { const v = this.data.visitas.find(x => x.id === id); if (v) this.showModal('Editar Visita', this.getVisitaForm(v), () => this.saveVisita(v.id)); }
     async deleteVisita(id) { if (!confirm('¿Eliminar visita?')) return; this.data.visitas = this.data.visitas.filter(v => v.id !== id); await db.delete('visitas', id); this.renderVisitas(); this.showToast('Visita eliminada', 'success'); }
 
-    // =================== CRONOGRAMA 4 COLUMNAS ===================
+    // =================== CRONOGRAMA ===================
     renderCronograma() {
         const meses = this.data.listas.meses || INITIAL_DATA.meses;
-        document.getElementById('currentMonth').textContent = `${meses[this.currentMonth]} ${this.currentYear}`;
         const eds = this.data.listas.edificios || [];
-
-        const tareasMes = (this.data.tareas || []).filter(t => { const f = new Date(t.fecha); return f.getMonth() === this.currentMonth && f.getFullYear() === this.currentYear; });
-        const visitasMes = (this.data.visitas || []).filter(v => { const f = new Date(v.fecha); return f.getMonth() === this.currentMonth && f.getFullYear() === this.currentYear; });
-        const incidenciasMes = (this.data.incidencias || []).filter(i => { const f = new Date(i.fecha); return f.getMonth() === this.currentMonth && f.getFullYear() === this.currentYear; });
-
         const grid = document.getElementById('cronogramaGrid');
         if (!grid) return;
+
         if (eds.length === 0) { grid.innerHTML = '<p class="crono-empty">Agrega edificios en Configuración para ver el cronograma</p>'; return; }
 
-        const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+        let dateRange, periodLabel;
+        if (this.cronogramaView === 'monthly') {
+            document.getElementById('currentPeriod').textContent = `${meses[this.currentMonth]} ${this.currentYear}`;
+            const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+            const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+            dateRange = { start: firstDay, end: lastDay, daysInPeriod: lastDay.getDate() };
+            periodLabel = `${meses[this.currentMonth]} ${this.currentYear}`;
+        } else {
+            const weekEnd = new Date(this.currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            const startStr = `${this.currentWeekStart.getDate()}/${this.currentWeekStart.getMonth() + 1}`;
+            const endStr = `${weekEnd.getDate()}/${weekEnd.getMonth() + 1}/${weekEnd.getFullYear()}`;
+            document.getElementById('currentPeriod').textContent = `Semana ${startStr} - ${endStr}`;
+            dateRange = { start: new Date(this.currentWeekStart), end: weekEnd, daysInPeriod: 7 };
+            periodLabel = `Semana ${startStr} - ${endStr}`;
+        }
+
+        const tareas = (this.data.tareas || []).filter(t => { const f = new Date(t.fecha); return f >= dateRange.start && f <= dateRange.end; });
+        const visitas = (this.data.visitas || []).filter(v => { const f = new Date(v.fecha); return f >= dateRange.start && f <= dateRange.end; });
+        const incidencias = (this.data.incidencias || []).filter(i => { const f = new Date(i.fecha); return f >= dateRange.start && f <= dateRange.end; });
+
         let gridHtml = '';
         eds.forEach(ed => {
             const edColor = EDIFICIO_COLORS[ed] || '#6b7280';
-            const edTareas = tareasMes.filter(t => t.edificio === ed);
-            const edVisitas = visitasMes.filter(v => v.edificio === ed);
-            const edIncidencias = incidenciasMes.filter(i => i.edificio === ed);
+            const edTareas = tareas.filter(t => t.edificio === ed);
+            const edVisitas = visitas.filter(v => v.edificio === ed);
+            const edIncidencias = incidencias.filter(i => i.edificio === ed);
             const allItems = [
                 ...edTareas.map(t => ({ date: new Date(t.fecha), label: t.actividad, cat: t.categoria, type: 'tarea', estado: t.estado })),
                 ...edVisitas.map(v => ({ date: new Date(v.fecha), label: v.motivo, cat: v.tipo, type: 'visita', estado: v.estado })),
@@ -358,22 +410,129 @@ class MaintenanceApp {
             ].sort((a, b) => a.date - b.date);
 
             let bodyHtml = '';
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayItems = allItems.filter(i => i.date.getDate() === day);
-                if (dayItems.length === 0) continue;
-                bodyHtml += `<div class="crono-day"><span class="crono-day-num">${day}</span>`;
-                dayItems.forEach(item => {
-                    const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#6b7280' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
-                    const icon = item.type === 'tarea' ? 'fa-tasks' : item.type === 'visita' ? 'fa-clipboard-check' : 'fa-exclamation-triangle';
-                    const estadoClass = item.estado === 'Completado' ? 'crono-item-done' : '';
-                    bodyHtml += `<div class="crono-item ${estadoClass}" style="border-left-color:${color}" title="${item.label}"><i class="fas ${icon}" style="color:${color}"></i><span>${item.label.substring(0, 25)}${item.label.length > 25 ? '...' : ''}</span></div>`;
-                });
-                bodyHtml += '</div>';
+            if (this.cronogramaView === 'monthly') {
+                for (let day = 1; day <= dateRange.daysInPeriod; day++) {
+                    const dayItems = allItems.filter(i => i.date.getDate() === day);
+                    if (dayItems.length === 0) continue;
+                    bodyHtml += `<div class="crono-day"><span class="crono-day-num">${day}</span>`;
+                    dayItems.forEach(item => { bodyHtml += this._cronoItemHTML(item); });
+                    bodyHtml += '</div>';
+                }
+            } else {
+                const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+                for (let d = 0; d < 7; d++) {
+                    const dayDate = new Date(this.currentWeekStart);
+                    dayDate.setDate(dayDate.getDate() + d);
+                    const dayItems = allItems.filter(i => i.date.getDate() === dayDate.getDate() && i.date.getMonth() === dayDate.getMonth());
+                    const isToday = dayDate.toDateString() === new Date().toDateString();
+                    bodyHtml += `<div class="crono-day ${isToday ? 'crono-today' : ''}"><span class="crono-day-num">${dayNames[d]} ${dayDate.getDate()}</span>`;
+                    if (dayItems.length > 0) {
+                        dayItems.forEach(item => { bodyHtml += this._cronoItemHTML(item); });
+                    } else {
+                        bodyHtml += '<div class="crono-item crono-empty-day">Sin actividades</div>';
+                    }
+                    bodyHtml += '</div>';
+                }
             }
 
             gridHtml += `<div class="cronograma-col"><div class="cronograma-col-header" style="border-color:${edColor}"><h4><span class="edificio-dot" style="background:${edColor}"></span>${ed}</h4></div><div class="cronograma-col-body">${bodyHtml || '<p class="crono-empty">Sin actividades</p>'}</div></div>`;
         });
         grid.innerHTML = gridHtml;
+    }
+
+    _cronoItemHTML(item) {
+        const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#6b7280' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
+        const icon = item.type === 'tarea' ? 'fa-tasks' : item.type === 'visita' ? 'fa-clipboard-check' : 'fa-exclamation-triangle';
+        const estadoClass = item.estado === 'Completado' ? 'crono-item-done' : '';
+        const label = item.label.length > 25 ? item.label.substring(0, 25) + '...' : item.label;
+        return `<div class="crono-item ${estadoClass}" style="border-left-color:${color}" title="${item.label}"><i class="fas ${icon}" style="color:${color}"></i><span>${label}</span></div>`;
+    }
+
+    exportCronogramaPDF() {
+        const meses = this.data.listas.meses || INITIAL_DATA.meses;
+        const eds = this.data.listas.edificios || [];
+        const title = this.cronogramaView === 'monthly' ? `Cronograma - ${meses[this.currentMonth]} ${this.currentYear}` : document.getElementById('currentPeriod').textContent;
+
+        let dateRange;
+        if (this.cronogramaView === 'monthly') {
+            dateRange = { start: new Date(this.currentYear, this.currentMonth, 1), end: new Date(this.currentYear, this.currentMonth + 1, 0) };
+        } else {
+            const weekEnd = new Date(this.currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            dateRange = { start: new Date(this.currentWeekStart), end: weekEnd };
+        }
+
+        const tareas = (this.data.tareas || []).filter(t => { const f = new Date(t.fecha); return f >= dateRange.start && f <= dateRange.end; });
+        const visitas = (this.data.visitas || []).filter(v => { const f = new Date(v.fecha); return f >= dateRange.start && f <= dateRange.end; });
+        const incidencias = (this.data.incidencias || []).filter(i => { const f = new Date(i.fecha); return f >= dateRange.start && f <= dateRange.end; });
+
+        let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+            body{font-family:Arial,sans-serif;margin:20px;color:#1e293b}
+            h1{font-size:18px;margin-bottom:4px} h2{font-size:13px;color:#64748b;margin-top:0;margin-bottom:16px}
+            .grid{display:grid;grid-template-columns:repeat(${eds.length},1fr);gap:10px}
+            .col{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;min-height:120px}
+            .col-header{padding:8px 12px;font-weight:700;font-size:12px;color:white}
+            .col-body{padding:8px}
+            .item{border-left:3px solid #ccc;padding:4px 8px;margin-bottom:4px;font-size:10px;background:#f8fafc;border-radius:0 4px 4px 0}
+            .item-tarea{border-left-color:#3b82f6}.item-visita{border-left-color:#8b5cf6}.item-incidencia{border-left-color:#ef4444}
+            .day-label{font-weight:700;font-size:10px;color:#64748b;margin-bottom:4px;margin-top:8px}
+            .empty{color:#94a3b8;font-size:10px;font-style:italic}
+            @media print{body{margin:10px}.grid{gap:6px}}
+        </style></head><body>
+        <h1>${title}</h1>
+        <h2>Facility Management - ${new Date().toLocaleDateString('es-ES')}</h2>
+        <div class="grid">`;
+
+        eds.forEach(ed => {
+            const edColor = EDIFICIO_COLORS[ed] || '#6b7280';
+            const edTareas = tareas.filter(t => t.edificio === ed);
+            const edVisitas = visitas.filter(v => v.edificio === ed);
+            const edIncidencias = incidencias.filter(i => i.edificio === ed);
+            const allItems = [
+                ...edTareas.map(t => ({ date: new Date(t.fecha), label: t.actividad, type: 'tarea', estado: t.estado })),
+                ...edVisitas.map(v => ({ date: new Date(v.fecha), label: v.motivo, type: 'visita', estado: v.estado })),
+                ...edIncidencias.map(i => ({ date: new Date(i.fecha), label: i.descripcion, type: 'incidencia', estado: i.estado }))
+            ].sort((a, b) => a.date - b.date);
+
+            html += `<div class="col"><div class="col-header" style="background:${edColor}">${ed}</div><div class="col-body">`;
+            if (allItems.length === 0) {
+                html += '<p class="empty">Sin actividades</p>';
+            } else {
+                if (this.cronogramaView === 'monthly') {
+                    const daysInMonth = dateRange.end.getDate();
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const dayItems = allItems.filter(i => i.date.getDate() === day);
+                        if (dayItems.length === 0) continue;
+                        html += `<div class="day-label">Día ${day}</div>`;
+                        dayItems.forEach(item => {
+                            html += `<div class="item item-${item.type}">${item.label} ${item.estado === 'Completado' ? '✓' : ''}</div>`;
+                        });
+                    }
+                } else {
+                    const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+                    for (let d = 0; d < 7; d++) {
+                        const dayDate = new Date(this.currentWeekStart);
+                        dayDate.setDate(dayDate.getDate() + d);
+                        const dayItems = allItems.filter(i => i.date.getDate() === dayDate.getDate() && i.date.getMonth() === dayDate.getMonth());
+                        html += `<div class="day-label">${dayNames[d]} ${dayDate.getDate()}</div>`;
+                        if (dayItems.length > 0) {
+                            dayItems.forEach(item => { html += `<div class="item item-${item.type}">${item.label} ${item.estado === 'Completado' ? '✓' : ''}</div>`; });
+                        } else {
+                            html += '<p class="empty">Sin actividades</p>';
+                        }
+                    }
+                }
+            }
+            html += '</div></div>';
+        });
+
+        html += '</div></body></html>';
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => { printWindow.print(); }, 500);
     }
 
     // =================== CARTA GANTT ===================
