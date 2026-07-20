@@ -1,0 +1,222 @@
+.quote-editor {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--header-height) - 3rem);
+}
+
+.quote-editor-header {
+    padding: 1rem 1.5rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border: 1px solid var(--border-light);
+    border-bottom: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.quote-editor-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.quote-editor-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    background: var(--bg-main);
+    border-left: 1px solid var(--border-light);
+    border-right: 1px solid var(--border-light);
+}
+
+.quote-preview {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.quote-document {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.quote-header-doc {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    border-bottom: 3px solid var(--primary);
+    padding-bottom: 1rem;
+}
+
+.quote-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.quote-logo i {
+    font-size: 1.8rem;
+}
+
+.quote-title {
+    text-align: right;
+}
+
+.quote-title h2 {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.quote-title p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.quote-client {
+    background: var(--bg-main);
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.5rem;
+}
+
+.quote-client h4 {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+.quote-client input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    background: white;
+}
+
+.quote-client input:focus {
+    outline: none;
+    border-color: var(--primary-light);
+}
+
+.quote-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+
+.quote-items-table th {
+    background: var(--primary);
+    color: white;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+}
+
+.quote-items-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.quote-items-table input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
+.quote-items-table input:focus {
+    outline: none;
+    border-color: var(--primary-light);
+}
+
+.quote-totals {
+    display: flex;
+    justify-content: flex-end;
+    margin: 1.5rem 0;
+}
+
+.quote-totals .totals-box {
+    width: 280px;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+}
+
+.total-row input {
+    border: none;
+    text-align: right;
+    font-weight: 600;
+    font-size: 0.9rem;
+    background: transparent;
+    width: 120px;
+}
+
+.total-final {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+    border-bottom: none;
+    padding-top: 8px;
+}
+
+.total-final input {
+    font-size: 1.1rem;
+    color: var(--primary);
+}
+
+.quote-notes {
+    margin-top: 1.5rem;
+}
+
+.quote-notes h4 {
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+}
+
+.quote-notes textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.quote-terms {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.quote-terms p {
+    margin-bottom: 4px;
+}
+
+.quote-editor-footer {
+    padding: 1rem 1.5rem;
+    background: var(--bg-card);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    border: 1px solid var(--border-light);
+    border-top: none;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}

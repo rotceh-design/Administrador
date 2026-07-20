@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facility Management - Sistema de Mantenimiento</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/email.css">
+    <link rel="stylesheet" href="css/quotes.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fas fa-building"></i></div>
+                    <div class="logo-text">
+                        <span class="logo-name">Facility</span>
+                        <span class="logo-subtitle">Management</span>
+                    </div>
+                </div>
+                <button class="toggle-sidebar" id="toggleSidebar"><i class="fas fa-bars"></i></button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">PRINCIPAL</div>
+                <a href="#" class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-chart-pie"></i><span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-section="tareas">
+                    <i class="fas fa-tasks"></i><span>Tareas</span>
+                    <span class="nav-badge" id="navTareasBadge">0</span>
+                </a>
+                <a href="#" class="nav-item" data-section="cronograma">
+                    <i class="fas fa-calendar-alt"></i><span>Cronograma</span>
+                </a>
+                <a href="#" class="nav-item" data-section="gantt">
+                    <i class="fas fa-project-diagram"></i><span>Carta Gantt</span>
+                </a>
+
+                <div class="nav-section">OPERACIONES</div>
+                <a href="#" class="nav-item" data-section="visitas">
+                    <i class="fas fa-clipboard-check"></i><span>Visitas</span>
+                    <span class="nav-badge" id="navVisitasBadge">0</span>
+                </a>
+                <a href="#" class="nav-item" data-section="incidencias">
+                    <i class="fas fa-exclamation-triangle"></i><span>Incidencias</span>
+                    <span class="nav-badge danger" id="navIncidenciasBadge">0</span>
+                </a>
+                <a href="#" class="nav-item" data-section="informes">
+                    <i class="fas fa-file-alt"></i><span>Informes Diarios</span>
+                </a>
+
+                <div class="nav-section">GESTIÓN</div>
+                <a href="#" class="nav-item" data-section="proveedores">
+                    <i class="fas fa-users"></i><span>Proveedores</span>
+                </a>
+                <a href="#" class="nav-item" data-section="fotos">
+                    <i class="fas fa-camera"></i><span>Fotografías</span>
+                </a>
+
+                <div class="nav-section">HERRAMIENTAS</div>
+                <a href="#" class="nav-item" data-section="emails">
+                    <i class="fas fa-envelope"></i><span>Correos</span>
+                </a>
+                <a href="#" class="nav-item" data-section="cotizaciones">
+                    <i class="fas fa-file-invoice-dollar"></i><span>Cotizaciones</span>
+                </a>
+                <a href="#" class="nav-item" data-section="reportes">
+                    <i class="fas fa-chart-bar"></i><span>Reportes</span>
+                </a>
+
+                <div class="nav-section">SISTEMA</div>
+                <a href="#" class="nav-item" data-section="config">
+                    <i class="fas fa-cog"></i><span>Configuración</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="avatar"><i class="fas fa-user-tie"></i></div>
+                    <div class="user-details">
+                        <span class="user-name" id="userName">Administrador</span>
+                        <span class="user-role">Facility Manager</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="main-header">
+                <div class="header-left">
+                    <button class="mobile-menu" id="mobileMenu"><i class="fas fa-bars"></i></button>
+                    <div class="header-title">
+                        <h1 id="pageTitle">Dashboard</h1>
+                        <p class="subtitle" id="pageSubtitle">Panel de control general</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <select class="filter-select" id="filterEdificioGlobal" style="min-width:140px;">
+                        <option value="">Todos los Edificios</option>
+                    </select>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Buscar..." id="searchInput">
+                        <kbd>Ctrl+K</kbd>
+                    </div>
+                    <button class="icon-btn" id="notificationBtn" title="Notificaciones">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge" id="notificationBadge">0</span>
+                    </button>
+                    <button class="icon-btn" id="fullscreenBtn" title="Pantalla completa">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <button class="btn-primary" id="addNewBtn"><i class="fas fa-plus"></i><span>Nuevo</span></button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <!-- Dashboard -->
+                <section class="content-section active" id="dashboardSection">
+                    <div class="edificio-tabs" id="edificioTabs"></div>
+                    <div class="kpi-grid">
+                        <div class="kpi-card kpi-blue">
+                            <div class="kpi-icon"><i class="fas fa-building"></i></div>
+                            <div class="kpi-info"><h3 id="kpiEdificios">4</h3><p>Edificios</p></div>
+                        </div>
+                        <div class="kpi-card kpi-green">
+                            <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="kpi-info"><h3 id="kpiCompletadas">0</h3><p>Completadas</p></div>
+                        </div>
+                        <div class="kpi-card kpi-yellow">
+                            <div class="kpi-icon"><i class="fas fa-clock"></i></div>
+                            <div class="kpi-info"><h3 id="kpiPendientes">0</h3><p>Pendientes</p></div>
+                        </div>
+                        <div class="kpi-card kpi-red">
+                            <div class="kpi-icon"><i class="fas fa-exclamation-circle"></i></div>
+                            <div class="kpi-info"><h3 id="kpiIncidencias">0</h3><p>Incidencias</p></div>
+                        </div>
+                    </div>
+                    <div class="dashboard-grid">
+                        <div class="card card-lg">
+                            <div class="card-header"><h3><i class="fas fa-chart-line"></i> Actividades por Categoría</h3></div>
+                            <div class="card-body"><canvas id="chartCategorias"></canvas></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h3><i class="fas fa-calendar-check"></i> Próximas Visitas</h3></div>
+                            <div class="card-body"><div id="proximasVisitas"></div></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h3><i class="fas fa-tasks"></i> Tareas Pendientes</h3></div>
+                            <div class="card-body"><div id="proximasTareas"></div></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h3><i class="fas fa-exclamation-triangle"></i> Incidencias Activas</h3></div>
+                            <div class="card-body"><div id="incidenciasRecientes"></div></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tareas -->
+                <section class="content-section" id="tareasSection">
+                    <div class="section-header">
+                        <div class="filters">
+                            <select id="filterCategoria" class="filter-select"><option value="">Todas las categorías</option></select>
+                            <select id="filterEdificio" class="filter-select"><option value="">Todos los edificios</option></select>
+                            <select id="filterEstado" class="filter-select">
+                                <option value="">Todos los estados</option>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="En Progreso">En Progreso</option>
+                                <option value="Completado">Completado</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table" id="tareasTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th><th>Actividad</th><th>Categoría</th><th>Edificio</th>
+                                    <th>Ubicación</th><th>Proveedor</th><th>Fecha</th><th>Estado</th><th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tareasBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Cronograma 4 Edificios -->
+                <section class="content-section" id="cronogramaSection">
+                    <div class="section-header">
+                        <div class="cronograma-nav">
+                            <button class="btn-icon" id="prevMonth"><i class="fas fa-chevron-left"></i></button>
+                            <h3 id="currentMonth">Julio 2026</h3>
+                            <button class="btn-icon" id="nextMonth"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="cronograma-4col" id="cronogramaGrid">
+                        <div class="cronograma-col" data-edificio="Marriott">
+                            <div class="cronograma-col-header" style="border-color: #1e40af;"><h4><span class="edificio-dot" style="background:#1e40af"></span>Marriott</h4></div>
+                            <div class="cronograma-col-body" id="cronoMarriott"></div>
+                        </div>
+                        <div class="cronograma-col" data-edificio="San 1">
+                            <div class="cronograma-col-header" style="border-color: #059669;"><h4><span class="edificio-dot" style="background:#059669"></span>San 1</h4></div>
+                            <div class="cronograma-col-body" id="cronoSan1"></div>
+                        </div>
+                        <div class="cronograma-col" data-edificio="San 2">
+                            <div class="cronograma-col-header" style="border-color: #d97706;"><h4><span class="edificio-dot" style="background:#d97706"></span>San 2</h4></div>
+                            <div class="cronograma-col-body" id="cronoSan2"></div>
+                        </div>
+                        <div class="cronograma-col" data-edificio="Valparaíso">
+                            <div class="cronograma-col-header" style="border-color: #dc2626;"><h4><span class="edificio-dot" style="background:#dc2626"></span>Valparaíso</h4></div>
+                            <div class="cronograma-col-body" id="cronoValparaiso"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Carta Gantt -->
+                <section class="content-section" id="ganttSection">
+                    <div class="section-header">
+                        <div class="filters">
+                            <select id="filterGanttEdificio" class="filter-select"><option value="">Todos los edificios</option></select>
+                            <select id="filterGanttCategoria" class="filter-select"><option value="">Todas las categorías</option></select>
+                        </div>
+                    </div>
+                    <div class="gantt-container" id="ganttContainer"></div>
+                </section>
+
+                <!-- Visitas -->
+                <section class="content-section" id="visitasSection">
+                    <div class="section-header">
+                        <div class="filters">
+                            <select id="filterVisitaEdificio" class="filter-select"><option value="">Todos los edificios</option></select>
+                            <select id="filterVisitaTipo" class="filter-select"><option value="">Todos los tipos</option></select>
+                            <select id="filterVisitaEstado" class="filter-select">
+                                <option value="">Todos los estados</option>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="En Progreso">En Progreso</option>
+                                <option value="Completado">Completado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th><th>Fecha</th><th>Edificio</th><th>Tipo</th>
+                                    <th>Motivo</th><th>Proveedor</th><th>Estado</th><th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="visitasBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Incidencias -->
+                <section class="content-section" id="incidenciasSection">
+                    <div class="section-header">
+                        <div class="filters">
+                            <select id="filterIncidenciaEdificio" class="filter-select"><option value="">Todos los edificios</option></select>
+                            <select id="filterPrioridad" class="filter-select">
+                                <option value="">Todas las prioridades</option>
+                                <option value="Alta">Alta</option>
+                                <option value="Media">Media</option>
+                                <option value="Baja">Baja</option>
+                            </select>
+                            <select id="filterEstadoInc" class="filter-select">
+                                <option value="">Todos los estados</option>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="En Progreso">En Progreso</option>
+                                <option value="Completado">Completado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th><th>Fecha</th><th>Edificio</th><th>Descripción</th>
+                                    <th>Categoría</th><th>Prioridad</th><th>Proveedor</th><th>Estado</th><th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="incidenciasBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Informes Diarios -->
+                <section class="content-section" id="informesSection">
+                    <div class="section-header">
+                        <div class="filters">
+                            <select id="filterInformeEdificio" class="filter-select"><option value="">Todos los edificios</option></select>
+                            <input type="date" id="filterInformeFecha" class="filter-input">
+                        </div>
+                        <button class="btn-primary" id="nuevoInformeBtn"><i class="fas fa-plus"></i> Nuevo Informe</button>
+                    </div>
+                    <div class="informes-list" id="informesList"></div>
+                </section>
+
+                <!-- Proveedores -->
+                <section class="content-section" id="proveedoresSection">
+                    <div class="section-header">
+                        <div class="filters">
+                            <select id="filterServicio" class="filter-select"><option value="">Todos los servicios</option></select>
+                            <input type="text" class="filter-input" placeholder="Buscar proveedor..." id="searchProveedor">
+                        </div>
+                    </div>
+                    <div class="providers-grid" id="providersGrid"></div>
+                </section>
+
+                <!-- Fotos -->
+                <section class="content-section" id="fotosSection">
+                    <div class="section-header">
+                        <div class="filters">
+                            <select id="filterFotoEdificio" class="filter-select"><option value="">Todos los edificios</option></select>
+                            <select id="filterFotoCategoria" class="filter-select"><option value="">Todas las categorías</option></select>
+                        </div>
+                    </div>
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h3>Arrastra fotos aquí o haz clic para subir</h3>
+                        <p>JPG, PNG, WEBP | Máximo 5MB por foto</p>
+                        <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
+                        <button class="btn-primary" id="uploadBtn"><i class="fas fa-plus"></i> Seleccionar Fotos</button>
+                    </div>
+                    <div class="photos-grid" id="photosGrid"></div>
+                </section>
+
+                <!-- Emails -->
+                <section class="content-section" id="emailsSection">
+                    <div class="email-wizard" id="emailWizard">
+                        <div class="email-step active" id="emailStep1">
+                            <h3 class="email-step-title"><i class="fas fa-envelope"></i> Selecciona el tipo de correo</h3>
+                            <div class="email-type-grid">
+                                <div class="email-type-card" data-type="solicitud">
+                                    <div class="email-type-icon" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);"><i class="fas fa-wrench"></i></div>
+                                    <h4>Solicitud de Mantenimiento</h4>
+                                    <p>Solicitar servicio a proveedor</p>
+                                </div>
+                                <div class="email-type-card" data-type="incidencia">
+                                    <div class="email-type-icon" style="background:linear-gradient(135deg,#ef4444,#dc2626);"><i class="fas fa-exclamation-triangle"></i></div>
+                                    <h4>Reporte de Incidencia</h4>
+                                    <p>Reportar un problema urgente</p>
+                                </div>
+                                <div class="email-type-card" data-type="seguimiento">
+                                    <div class="email-type-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);"><i class="fas fa-sync-alt"></i></div>
+                                    <h4>Seguimiento</h4>
+                                    <p>Dar seguimiento a tarea</p>
+                                </div>
+                                <div class="email-type-card" data-type="confirmacion">
+                                    <div class="email-type-icon" style="background:linear-gradient(135deg,#10b981,#059669);"><i class="fas fa-check-circle"></i></div>
+                                    <h4>Confirmación</h4>
+                                    <p>Confirmar trabajo realizado</p>
+                                </div>
+                                <div class="email-type-card" data-type="recordatorio">
+                                    <div class="email-type-icon" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);"><i class="fas fa-bell"></i></div>
+                                    <h4>Recordatorio</h4>
+                                    <p>Recordar tareas pendientes</p>
+                                </div>
+                                <div class="email-type-card" data-type="cotizacion">
+                                    <div class="email-type-icon" style="background:linear-gradient(135deg,#06b6d4,#0891b2);"><i class="fas fa-file-invoice-dollar"></i></div>
+                                    <h4>Solicitud de Cotización</h4>
+                                    <p>Pedir presupuesto a proveedor</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="email-step" id="emailStep2">
+                            <div class="email-form-layout">
+                                <div class="email-form-panel">
+                                    <div class="email-form-header">
+                                        <button class="btn-icon" id="emailBackStep1"><i class="fas fa-arrow-left"></i></button>
+                                        <h3 id="emailFormTitle">Correo</h3>
+                                    </div>
+                                    <div class="email-form-body" id="emailFormBody"></div>
+                                </div>
+                                <div class="email-preview-panel">
+                                    <div class="email-preview-header">
+                                        <h4><i class="fas fa-eye"></i> Vista Previa</h4>
+                                        <div class="email-preview-actions">
+                                            <button class="btn-secondary btn-sm" id="copyEmail"><i class="fas fa-copy"></i> Copiar</button>
+                                            <button class="btn-primary btn-sm" id="openEmailClient"><i class="fas fa-external-link-alt"></i> Email</button>
+                                        </div>
+                                    </div>
+                                    <div class="email-preview-content" id="emailPreviewContent">
+                                        <p class="email-preview-placeholder">Completa el formulario para ver la vista previa...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Cotizaciones -->
+                <section class="content-section" id="cotizacionesSection">
+                    <div class="quotes-list" id="quotesList"></div>
+                    <div class="quote-editor" id="quoteEditor" style="display:none;">
+                        <div class="quote-editor-header">
+                            <h3>Nueva Cotización</h3>
+                            <button class="btn-icon" id="closeQuoteEditor"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="quote-editor-body">
+                            <div class="quote-preview" id="quotePreview">
+                                <div class="quote-document">
+                                    <div class="quote-header-doc">
+                                        <div class="quote-logo"><i class="fas fa-building"></i><span>Facility Management</span></div>
+                                        <div class="quote-title">
+                                            <h2>COTIZACIÓN</h2>
+                                            <p>Nº: <span id="quoteNumber">COT-001</span></p>
+                                            <p>Fecha: <span id="quoteDate"></span></p>
+                                        </div>
+                                    </div>
+                                    <div class="quote-client">
+                                        <h4>CLIENTE:</h4>
+                                        <input type="text" id="quoteClient" placeholder="Nombre / Empresa">
+                                        <input type="text" id="quoteClientAddress" placeholder="Edificio / Dirección">
+                                        <input type="text" id="quoteClientPhone" placeholder="Teléfono / Email">
+                                    </div>
+                                    <table class="quote-items-table">
+                                        <thead><tr><th>Descripción</th><th>Cant.</th><th>Precio Unit.</th><th>Total</th><th></th></tr></thead>
+                                        <tbody id="quoteItems"></tbody>
+                                    </table>
+                                    <button class="btn-secondary btn-sm" id="addItemQuote"><i class="fas fa-plus"></i> Agregar Item</button>
+                                    <div class="quote-totals">
+                                        <div class="totals-box">
+                                            <div class="total-row"><span>Subtotal:</span><input type="text" id="quoteSubtotal" readonly></div>
+                                            <div class="total-row"><span>IVA (16%):</span><input type="text" id="quoteTax" readonly></div>
+                                            <div class="total-row total-final"><span>TOTAL:</span><input type="text" id="quoteTotal" readonly></div>
+                                        </div>
+                                    </div>
+                                    <div class="quote-notes"><h4>Notas:</h4><textarea id="quoteNotes" rows="3" placeholder="Condiciones, validez, etc."></textarea></div>
+                                    <div class="quote-terms"><p>Validez: 30 días | Forma de pago: [Especificar]</p></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="quote-editor-footer">
+                            <button class="btn-secondary" id="saveQuote"><i class="fas fa-save"></i> Guardar</button>
+                            <button class="btn-primary" id="printQuote"><i class="fas fa-print"></i> Imprimir/PDF</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Reportes -->
+                <section class="content-section" id="reportesSection">
+                    <div class="reports-dashboard">
+                        <div class="reports-sidebar">
+                            <h3>Tipos de Reporte</h3>
+                            <div class="report-type-list">
+                                <button class="report-type-btn active" data-report="resumen"><i class="fas fa-chart-pie"></i> Resumen General</button>
+                                <button class="report-type-btn" data-report="tareas"><i class="fas fa-tasks"></i> Reporte de Tareas</button>
+                                <button class="report-type-btn" data-report="visitas"><i class="fas fa-clipboard-check"></i> Reporte de Visitas</button>
+                                <button class="report-type-btn" data-report="incidencias"><i class="fas fa-exclamation-triangle"></i> Incidencias</button>
+                                <button class="report-type-btn" data-report="proveedores"><i class="fas fa-star"></i> Proveedores</button>
+                            </div>
+                            <div class="report-filters">
+                                <h4>Filtros</h4>
+                                <div class="form-group"><label>Edificio:</label><select id="reportEdificio" class="filter-select"><option value="">Todos</option></select></div>
+                                <div class="form-group"><label>Fecha Inicio:</label><input type="date" id="reportDateStart" class="filter-input"></div>
+                                <div class="form-group"><label>Fecha Fin:</label><input type="date" id="reportDateEnd" class="filter-input"></div>
+                                <button class="btn-primary btn-block" id="generateReport"><i class="fas fa-sync-alt"></i> Generar</button>
+                            </div>
+                        </div>
+                        <div class="report-content">
+                            <div class="report-header-actions">
+                                <button class="btn-secondary" id="exportReportPDF"><i class="fas fa-file-pdf"></i> PDF</button>
+                                <button class="btn-secondary" id="exportReportExcel"><i class="fas fa-file-excel"></i> Excel</button>
+                                <button class="btn-primary" id="printReport"><i class="fas fa-print"></i> Imprimir</button>
+                            </div>
+                            <div class="report-preview" id="reportPreview"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Configuración -->
+                <section class="content-section" id="configSection">
+                    <div class="config-grid">
+                        <div class="config-card">
+                            <h3><i class="fas fa-building"></i> Información</h3>
+                            <form id="configForm">
+                                <div class="form-group"><label>Nombre de la Empresa</label><input type="text" id="nombreEmpresa" value="Facility Management"></div>
+                                <div class="form-group"><label>Administrador</label><input type="text" id="administrador" value=""></div>
+                                <div class="form-group"><label>Email</label><input type="email" id="emailNotif" placeholder="correo@ejemplo.com"></div>
+                                <div class="form-group"><label>Teléfono</label><input type="tel" id="telefonoEdificio" placeholder="555-0000"></div>
+                                <button type="submit" class="btn-primary">Guardar Cambios</button>
+                            </form>
+                        </div>
+                        <div class="config-card">
+                            <h3><i class="fas fa-database"></i> Datos</h3>
+                            <div class="data-stats">
+                                <div class="stat-item"><span class="stat-label">Tareas:</span><span class="stat-value" id="statTareas">0</span></div>
+                                <div class="stat-item"><span class="stat-label">Visitas:</span><span class="stat-value" id="statVisitas">0</span></div>
+                                <div class="stat-item"><span class="stat-label">Incidencias:</span><span class="stat-value" id="statIncidencias">0</span></div>
+                                <div class="stat-item"><span class="stat-label">Proveedores:</span><span class="stat-value" id="statProveedores">0</span></div>
+                                <div class="stat-item"><span class="stat-label">Informes:</span><span class="stat-value" id="statInformes">0</span></div>
+                            </div>
+                            <div class="data-actions">
+                                <button class="btn-secondary" id="exportData"><i class="fas fa-download"></i> Exportar Datos</button>
+                                <button class="btn-secondary" id="importData"><i class="fas fa-upload"></i> Importar Datos</button>
+                                <button class="btn-danger" id="clearData"><i class="fas fa-trash"></i> Limpiar Todo</button>
+                                <input type="file" id="importFile" accept=".json" style="display:none;">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Nuevo Registro</h2>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="modalCancel">Cancelar</button>
+                <button class="btn-primary" id="modalSave">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Viewer -->
+    <div class="modal-overlay image-viewer-overlay" id="imageViewerOverlay">
+        <div class="image-viewer">
+            <button class="image-viewer-close" id="closeImageViewer">&times;</button>
+            <img id="imageViewerImg" src="" alt="Foto">
+            <div class="image-viewer-info" id="imageViewerInfo"></div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Search Modal -->
+    <div class="search-modal" id="searchModal">
+        <div class="search-modal-content">
+            <div class="search-modal-header">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar tareas, incidencias, visitas..." id="globalSearch" autofocus>
+                <kbd>ESC</kbd>
+            </div>
+            <div class="search-results" id="searchResults"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/database.js"></script>
+    <script src="js/photos.js"></script>
+    <script src="js/emails.js"></script>
+    <script src="js/quotes.js"></script>
+    <script src="js/reports.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
