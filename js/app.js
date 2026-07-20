@@ -28,16 +28,10 @@ class MaintenanceApp {
         const listas = await db.getAll('listas');
         listas.forEach(l => this.data.listas[l.key] = l.value);
 
-        const defaults = { categorias: INITIAL_DATA.categorias, ubicaciones: INITIAL_DATA.ubicaciones, edificios: INITIAL_DATA.edificios, estados: INITIAL_DATA.estados, prioridades: INITIAL_DATA.prioridades, tiposVisita: INITIAL_DATA.tiposVisita };
+        const defaults = { categorias: [], ubicaciones: [], edificios: [], estados: INITIAL_DATA.estados, prioridades: INITIAL_DATA.prioridades, tiposVisita: [], meses: INITIAL_DATA.meses };
         for (const [k, v] of Object.entries(defaults)) {
             if (!this.data.listas[k]) { this.data.listas[k] = v; await db.put('listas', { key: k, value: v }); }
         }
-
-        if (this.data.tareas.length === 0 && INITIAL_DATA.tareas.length) { for (const t of INITIAL_DATA.tareas) await db.put('tareas', t); this.data.tareas = [...INITIAL_DATA.tareas]; }
-        if (this.data.visitas.length === 0 && INITIAL_DATA.visitas.length) { for (const v of INITIAL_DATA.visitas) await db.put('visitas', v); this.data.visitas = [...INITIAL_DATA.visitas]; }
-        if (this.data.incidencias.length === 0 && INITIAL_DATA.incidencias.length) { for (const i of INITIAL_DATA.incidencias) await db.put('incidencias', i); this.data.incidencias = [...INITIAL_DATA.incidencias]; }
-        if (this.data.proveedores.length === 0 && INITIAL_DATA.proveedores.length) { for (const p of INITIAL_DATA.proveedores) await db.put('proveedores', p); this.data.proveedores = [...INITIAL_DATA.proveedores]; }
-        if (this.data.notificaciones.length === 0 && INITIAL_DATA.notificaciones.length) { for (const n of INITIAL_DATA.notificaciones) await db.put('notificaciones', n); this.data.notificaciones = [...INITIAL_DATA.notificaciones]; }
     }
 
     populateFilters() {
@@ -340,18 +334,20 @@ class MaintenanceApp {
     renderCronograma() {
         const meses = this.data.listas.meses || INITIAL_DATA.meses;
         document.getElementById('currentMonth').textContent = `${meses[this.currentMonth]} ${this.currentYear}`;
-        const eds = this.data.listas.edificios || ['Marriott', 'San 1', 'San 2', 'Valparaíso'];
+        const eds = this.data.listas.edificios || [];
 
         const tareasMes = (this.data.tareas || []).filter(t => { const f = new Date(t.fecha); return f.getMonth() === this.currentMonth && f.getFullYear() === this.currentYear; });
         const visitasMes = (this.data.visitas || []).filter(v => { const f = new Date(v.fecha); return f.getMonth() === this.currentMonth && f.getFullYear() === this.currentYear; });
         const incidenciasMes = (this.data.incidencias || []).filter(i => { const f = new Date(i.fecha); return f.getMonth() === this.currentMonth && f.getFullYear() === this.currentYear; });
 
-        const containerIds = { 'Marriott': 'cronoMarriott', 'San 1': 'cronoSan1', 'San 2': 'cronoSan2', 'Valparaíso': 'cronoValparaiso' };
+        const grid = document.getElementById('cronogramaGrid');
+        if (!grid) return;
+        if (eds.length === 0) { grid.innerHTML = '<p class="crono-empty">Agrega edificios en Configuración para ver el cronograma</p>'; return; }
 
+        const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+        let gridHtml = '';
         eds.forEach(ed => {
-            const container = document.getElementById(containerIds[ed]);
-            if (!container) return;
-
+            const edColor = EDIFICIO_COLORS[ed] || '#6b7280';
             const edTareas = tareasMes.filter(t => t.edificio === ed);
             const edVisitas = visitasMes.filter(v => v.edificio === ed);
             const edIncidencias = incidenciasMes.filter(i => i.edificio === ed);
@@ -361,22 +357,23 @@ class MaintenanceApp {
                 ...edIncidencias.map(i => ({ date: new Date(i.fecha), label: i.descripcion, cat: i.categoria, type: 'incidencia', estado: i.estado }))
             ].sort((a, b) => a.date - b.date);
 
-            const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-            let html = '';
+            let bodyHtml = '';
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayItems = allItems.filter(i => i.date.getDate() === day);
                 if (dayItems.length === 0) continue;
-                html += `<div class="crono-day"><span class="crono-day-num">${day}</span>`;
+                bodyHtml += `<div class="crono-day"><span class="crono-day-num">${day}</span>`;
                 dayItems.forEach(item => {
                     const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#6b7280' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
                     const icon = item.type === 'tarea' ? 'fa-tasks' : item.type === 'visita' ? 'fa-clipboard-check' : 'fa-exclamation-triangle';
                     const estadoClass = item.estado === 'Completado' ? 'crono-item-done' : '';
-                    html += `<div class="crono-item ${estadoClass}" style="border-left-color:${color}" title="${item.label}"><i class="fas ${icon}" style="color:${color}"></i><span>${item.label.substring(0, 25)}${item.label.length > 25 ? '...' : ''}</span></div>`;
+                    bodyHtml += `<div class="crono-item ${estadoClass}" style="border-left-color:${color}" title="${item.label}"><i class="fas ${icon}" style="color:${color}"></i><span>${item.label.substring(0, 25)}${item.label.length > 25 ? '...' : ''}</span></div>`;
                 });
-                html += '</div>';
+                bodyHtml += '</div>';
             }
-            container.innerHTML = html || '<p class="crono-empty">Sin actividades este mes</p>';
+
+            gridHtml += `<div class="cronograma-col"><div class="cronograma-col-header" style="border-color:${edColor}"><h4><span class="edificio-dot" style="background:${edColor}"></span>${ed}</h4></div><div class="cronograma-col-body">${bodyHtml || '<p class="crono-empty">Sin actividades</p>'}</div></div>`;
         });
+        grid.innerHTML = gridHtml;
     }
 
     // =================== CARTA GANTT ===================
@@ -620,7 +617,7 @@ class MaintenanceApp {
     // =================== CONFIG ===================
     async renderConfig() {
         const items = await db.getAll('config'); const c = {}; items.forEach(i => c[i.key] = i.value);
-        document.getElementById('nombreEmpresa').value = c.nombreEmpresa || 'Facility Management';
+        document.getElementById('nombreEmpresa').value = c.nombreEmpresa || '';
         document.getElementById('administrador').value = c.administrador || '';
         document.getElementById('emailNotif').value = c.emailNotif || '';
         document.getElementById('telefonoEdificio').value = c.telefono || '';
@@ -629,6 +626,41 @@ class MaintenanceApp {
         document.getElementById('statIncidencias').textContent = this.data.incidencias?.length || 0;
         document.getElementById('statProveedores').textContent = this.data.proveedores?.length || 0;
         document.getElementById('statInformes').textContent = this.data.informesDiarios?.length || 0;
+        this.renderLists();
+    }
+
+    renderLists() {
+        const lists = { edificios: 'edificiosList', categorias: 'categoriasList', ubicaciones: 'ubicacionesList', tiposVisita: 'tiposVisitaList' };
+        for (const [key, containerId] of Object.entries(lists)) {
+            const container = document.getElementById(containerId);
+            if (!container) continue;
+            const items = this.data.listas[key] || [];
+            container.innerHTML = items.length ? items.map(item => `<div class="list-item"><span>${item}</span><button class="btn-danger btn-sm" onclick="app.removeListItem('${key}','${item.replace(/'/g, "\\'")}')"><i class="fas fa-times"></i></button></div>`).join('') : '<p class="text-secondary" style="font-size:0.8rem">Sin elementos</p>';
+        }
+    }
+
+    async addListItem(listKey, inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        const value = input.value.trim();
+        if (!value) return;
+        if (!this.data.listas[listKey]) this.data.listas[listKey] = [];
+        if (this.data.listas[listKey].includes(value)) { this.showToast('Ya existe este elemento', 'warning'); return; }
+        this.data.listas[listKey].push(value);
+        await db.put('listas', { key: listKey, value: this.data.listas[listKey] });
+        input.value = '';
+        this.renderLists();
+        this.populateFilters();
+        this.showToast('Elemento agregado', 'success');
+    }
+
+    async removeListItem(listKey, value) {
+        if (!confirm(`¿Eliminar "${value}"?`)) return;
+        this.data.listas[listKey] = (this.data.listas[listKey] || []).filter(i => i !== value);
+        await db.put('listas', { key: listKey, value: this.data.listas[listKey] });
+        this.renderLists();
+        this.populateFilters();
+        this.showToast('Elemento eliminado', 'success');
     }
 
     async saveConfig() {
@@ -700,8 +732,11 @@ class MaintenanceApp {
     }
 
     async clearAllData() {
-        if (!confirm('¿Eliminar TODOS los datos?')) return;
-        for (const s of ['tareas', 'visitas', 'incidencias', 'proveedores', 'fotos', 'cotizaciones', 'notificaciones', 'informesDiarios']) await db.clear(s);
+        if (!confirm('¿Eliminar TODOS los datos? Esto incluye edificios, categorías y toda configuración.')) return;
+        for (const s of ['tareas', 'visitas', 'incidencias', 'proveedores', 'fotos', 'cotizaciones', 'notificaciones', 'informesDiarios', 'listas', 'config']) await db.clear(s);
+        this.data.listas = {};
+        const defaults = { categorias: [], ubicaciones: [], edificios: [], estados: INITIAL_DATA.estados, prioridades: INITIAL_DATA.prioridades, tiposVisita: [], meses: INITIAL_DATA.meses };
+        for (const [k, v] of Object.entries(defaults)) { this.data.listas[k] = v; await db.put('listas', { key: k, value: v }); }
         await this.loadData(); this.populateFilters(); this.renderSection(this.currentSection); this.showToast('Datos eliminados', 'warning');
     }
 }
