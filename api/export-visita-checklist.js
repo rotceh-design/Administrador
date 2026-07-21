@@ -21,56 +21,99 @@ module.exports = async function handler(req, res) {
         workbook.creator = 'Facility Management';
         workbook.created = new Date();
 
-        // ============ SHEET 1: VISITA RESUMEN ============
-        const resumenSheet = workbook.addWorksheet('Resumen', {
+        // ============ SHEET 1: PORTADA RESUMEN ============
+        const resumenSheet = workbook.addWorksheet('Portada', {
             properties: { tabColor: { argb: edArgb } },
-            pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1 }
+            pageSetup: { orientation: 'portrait', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.7, right: 0.7, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } }
         });
 
-        resumenSheet.mergeCells('A1:F1');
-        const titleCell = resumenSheet.getCell('A1');
-        titleCell.value = 'CHECKLIST DE INSPECCIÓN';
-        titleCell.font = { name: 'Arial', size: 20, bold: true, color: { argb: 'FFFFFFFF' } };
-        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: edArgb } };
-        titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
-        resumenSheet.getRow(1).height = 45;
+        // Columnas: A=label, B=dato, C=separador, D=label2, E=dato2
+        resumenSheet.getColumn('A').width = 20;
+        resumenSheet.getColumn('B').width = 32;
+        resumenSheet.getColumn('C').width = 4;
+        resumenSheet.getColumn('D').width = 20;
+        resumenSheet.getColumn('E').width = 28;
 
-        resumenSheet.mergeCells('A2:F2');
-        const subCell = resumenSheet.getCell('A2');
-        subCell.value = empresa || 'Facility Management';
-        subCell.font = { name: 'Arial', size: 11, color: { argb: 'FF64748B' } };
-        subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-        subCell.alignment = { vertical: 'middle', horizontal: 'center' };
-        resumenSheet.getRow(2).height = 24;
-        resumenSheet.getRow(3).height = 8;
+        // ── HEADER BLOCK ──
+        resumenSheet.getRow(1).height = 8;
+        resumenSheet.mergeCells('A2:E2');
+        const hdr2 = resumenSheet.getCell('A2');
+        hdr2.value = empresa || 'Facility Management';
+        hdr2.font = { name: 'Arial', size: 11, bold: true, color: { argb: edArgb } };
+        hdr2.alignment = { vertical: 'middle', horizontal: 'left' };
+        resumenSheet.getRow(2).height = 22;
 
-        const infoData = [
-            ['CIRION:', visita.edificio],
-            ['Fecha:', `${visita.fecha} (${dayNames[d.getDay()]})`],
-            ['Tipo:', visita.tipo],
-            ['Motivo:', visita.motivo],
-            ['Proveedor:', visita.proveedor || 'Sin asignar'],
-            ['Estado:', visita.estado],
-            ['Observaciones:', visita.observaciones || 'Ninguna']
+        resumenSheet.mergeCells('A3:E3');
+        const hdr3 = resumenSheet.getCell('A3');
+        hdr3.value = 'CHECKLIST DE INSPECCIÓN — INFORME DE VISITA';
+        hdr3.font = { name: 'Arial', size: 22, bold: true, color: { argb: 'FFFFFFFF' } };
+        hdr3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: edArgb } };
+        hdr3.alignment = { vertical: 'middle', horizontal: 'center' };
+        resumenSheet.getRow(3).height = 52;
+
+        resumenSheet.mergeCells('A4:E4');
+        const hdr4 = resumenSheet.getCell('A4');
+        hdr4.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: edArgb } };
+        resumenSheet.getRow(4).height = 5;
+
+        resumenSheet.getRow(5).height = 12;
+
+        // ── SECCIÓN: INFORMACIÓN GENERAL ──
+        resumenSheet.mergeCells('A6:E6');
+        const secInfo = resumenSheet.getCell('A6');
+        secInfo.value = 'INFORMACIÓN GENERAL';
+        secInfo.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+        secInfo.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
+        secInfo.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+        resumenSheet.getRow(6).height = 28;
+
+        const infoRows = [
+            ['CIRION / Edificio:', visita.edificio, '', 'Fecha de inspección:', `${visita.fecha} (${dayNames[d.getDay()]})`],
+            ['Tipo de visita:', visita.tipo, '', 'Estado:', visita.estado],
+            ['Motivo:', visita.motivo, '', 'Proveedor:', visita.proveedor || 'Sin asignar'],
+            ['Observaciones:', visita.observaciones || 'Sin observaciones', '', '', ''],
         ];
-        infoData.forEach((row) => {
-            const r = resumenSheet.addRow(row);
-            r.height = 22;
+        infoRows.forEach((vals, idx) => {
+            const r = resumenSheet.addRow(vals);
+            r.height = 26;
+            const rowBg = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF1F5F9';
+            r.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+                cell.border = { bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+                cell.alignment = { vertical: 'middle' };
+            });
             r.getCell(1).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF475569' } };
-            r.getCell(1).alignment = { vertical: 'middle', horizontal: 'right' };
+            r.getCell(1).alignment = { vertical: 'middle', horizontal: 'right', indent: 1 };
             r.getCell(2).font = { name: 'Arial', size: 10, color: { argb: 'FF1E293B' } };
             r.getCell(2).alignment = { vertical: 'middle', horizontal: 'left' };
+            r.getCell(4).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF475569' } };
+            r.getCell(4).alignment = { vertical: 'middle', horizontal: 'right' };
+            r.getCell(5).font = { name: 'Arial', size: 10, color: { argb: 'FF1E293B' } };
+            r.getCell(5).alignment = { vertical: 'middle', horizontal: 'left' };
         });
 
-        resumenSheet.getRow(11).height = 8;
-        resumenSheet.mergeCells('A12:F12');
-        const sumTitle = resumenSheet.getCell('A12');
-        sumTitle.value = 'ÁREAS A INSPECCIONAR';
-        sumTitle.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF1E40AF' } };
-        resumenSheet.getRow(12).height = 28;
+        // Observaciones row spans B to E
+        const lastInfoRow = resumenSheet.lastRow.number;
+        resumenSheet.mergeCells(`B${lastInfoRow}:E${lastInfoRow}`);
+        resumenSheet.getCell(`B${lastInfoRow}`).font = { name: 'Arial', size: 10, color: { argb: 'FF1E293B' } };
+        resumenSheet.getCell(`B${lastInfoRow}`).alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
 
-        const catHeaders = ['#', 'Área / Categoría', 'Items'];
-        const catHeaderRow = resumenSheet.addRow(catHeaders);
+        resumenSheet.getRow(resumenSheet.lastRow.number + 1).height = 10;
+
+        // ── SECCIÓN: CATEGORÍAS A INSPECCIONAR ──
+        const secCatRow = resumenSheet.lastRow.number + 1;
+        resumenSheet.mergeCells(`A${secCatRow}:E${secCatRow}`);
+        const secCat = resumenSheet.getCell(`A${secCatRow}`);
+        secCat.value = 'CATEGORÍAS A INSPECCIONAR';
+        secCat.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+        secCat.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
+        secCat.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+        resumenSheet.getRow(secCatRow).height = 28;
+
+        // Table header
+        const catHeaderRow = resumenSheet.addRow(['#', 'Categoría', '', 'Items', '']);
+        resumenSheet.mergeCells(`B${catHeaderRow.number}:C${catHeaderRow.number}`);
+        resumenSheet.mergeCells(`D${catHeaderRow.number}:E${catHeaderRow.number}`);
         catHeaderRow.height = 26;
         catHeaderRow.eachCell(cell => {
             cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -78,24 +121,68 @@ module.exports = async function handler(req, res) {
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
         });
 
+        // Category rows
         let catIdx = 1;
+        const catStartRow = resumenSheet.lastRow.number + 1;
         visita.checklist.forEach((cat) => {
             const catData = CHECKLIST_CATS[cat];
             if (!catData) return;
-            const r = resumenSheet.addRow([catIdx, cat, `${catData.items.length} items`]);
+            const catColor = (CHECKLIST_COLORS[cat] || edColor).replace('#', 'FF');
+            const r = resumenSheet.addRow([catIdx, cat, '', `${catData.items.length} items`, '']);
+            resumenSheet.mergeCells(`B${r.number}:C${r.number}`);
+            resumenSheet.mergeCells(`D${r.number}:E${r.number}`);
             r.height = 24;
+            const rowBg = catIdx % 2 === 0 ? 'FFF1F5F9' : 'FFFFFFFF';
             r.eachCell(cell => {
-                cell.font = { name: 'Arial', size: 10, color: { argb: 'FF334155' } };
-                cell.alignment = { vertical: 'middle' };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
                 cell.border = { bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
+                cell.alignment = { vertical: 'middle' };
             });
-            r.getCell(2).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF1E293B' } };
+            r.getCell(1).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF94A3B8' } };
+            r.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+            r.getCell(2).font = { name: 'Arial', size: 10, bold: true, color: { argb: catColor } };
+            r.getCell(2).alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+            r.getCell(4).font = { name: 'Arial', size: 10, color: { argb: 'FF64748B' } };
+            r.getCell(4).alignment = { vertical: 'middle', horizontal: 'center' };
             catIdx++;
         });
 
-        resumenSheet.getColumn(1).width = 5;
-        resumenSheet.getColumn(2).width = 22;
-        resumenSheet.getColumn(3).width = 12;
+        // ── SECCIÓN: FIRMA Y AUTORIZACIÓN ──
+        resumenSheet.getRow(resumenSheet.lastRow.number + 1).height = 14;
+        const secSignRow = resumenSheet.lastRow.number + 1;
+        resumenSheet.mergeCells(`A${secSignRow}:E${secSignRow}`);
+        const secSign = resumenSheet.getCell(`A${secSignRow}`);
+        secSign.value = 'FIRMA Y AUTORIZACIÓN';
+        secSign.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+        secSign.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
+        secSign.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+        resumenSheet.getRow(secSignRow).height = 28;
+
+        resumenSheet.addRow([]);
+        const s1 = resumenSheet.addRow(['Realizado por:', '___________________________', '', 'Recibido por:', '___________________________']);
+        s1.height = 28;
+        s1.eachCell(cell => { cell.alignment = { vertical: 'bottom' }; });
+        s1.getCell(1).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF475569' } };
+        s1.getCell(4).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF475569' } };
+
+        const s2 = resumenSheet.addRow(['Cargo:', '___________________________', '', 'Fecha:', '___________________________']);
+        s2.height = 28;
+        s2.getCell(1).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF475569' } };
+        s2.getCell(4).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF475569' } };
+
+        const s3 = resumenSheet.addRow(['Firma:', '', '', 'Firma:', '']);
+        s3.height = 42;
+        s3.getCell(1).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF475569' } };
+        s3.getCell(4).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF475569' } };
+
+        // Footer
+        resumenSheet.getRow(resumenSheet.lastRow.number + 1).height = 6;
+        const footRow = resumenSheet.lastRow.number + 1;
+        resumenSheet.mergeCells(`A${footRow}:E${footRow}`);
+        const footCell = resumenSheet.getCell(`A${footRow}`);
+        footCell.value = `Documento generado el ${new Date().toLocaleDateString('es-PR', { year: 'numeric', month: 'long', day: 'numeric' })} · Facility Management · CIRION`;
+        footCell.font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FF94A3B8' } };
+        footCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
         // ============ SHEETS PER CATEGORY ============
         visita.checklist.forEach(cat => {
