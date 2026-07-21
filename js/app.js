@@ -232,7 +232,7 @@ class MaintenanceApp {
         const proxVisitas = visitas.filter(v => v.estado !== 'Completado').sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).slice(0, 5);
         document.getElementById('proximasVisitas').innerHTML = proxVisitas.length ? proxVisitas.map(v => `
             <div class="task-item">
-                <div class="task-category" style="background:${EDIFICIO_COLORS[v.edificio] || '#6b7280'}"></div>
+                <div class="task-category" style="background:${getEdificioColor(v.edificio, this.data.listas?.edificios)}"></div>
                 <div class="task-info"><h4>${v.motivo}</h4><p>${v.edificio} - ${v.tipo}</p></div>
                 <span class="status-badge status-${v.estado.toLowerCase().replace(' ', '')}">${v.estado}</span>
             </div>`).join('') : '<p class="text-center" style="padding:1.5rem;color:var(--text-secondary)">No hay visitas pendientes</p>';
@@ -283,7 +283,7 @@ class MaintenanceApp {
             <tr>
                 <td><strong>${t.id}</strong></td><td>${t.actividad}</td>
                 <td><span style="color:${CATEGORY_COLORS[t.categoria]};font-weight:500">${t.categoria}</span></td>
-                <td><span class="edificio-tag" style="background:${EDIFICIO_COLORS[t.edificio] || '#6b7280'}">${t.edificio}</span></td>
+                <td><span class="edificio-tag" style="background:${getEdificioColor(t.edificio, this.data.listas?.edificios)}">${t.edificio}</span></td>
                 <td>${t.ubicacion}</td><td>${t.proveedor}</td><td>${this.formatDate(t.fecha)}</td>
                 <td><span class="status-badge status-${t.estado.toLowerCase().replace(' ', '')}">${t.estado}</span></td>
                 <td class="actions-cell">
@@ -333,7 +333,7 @@ class MaintenanceApp {
         tbody.innerHTML = visitas.length ? visitas.map(v => `
             <tr>
                 <td><strong>${v.id}</strong></td><td>${this.formatDate(v.fecha)}</td>
-                <td><span class="edificio-tag" style="background:${EDIFICIO_COLORS[v.edificio] || '#6b7280'}">${v.edificio}</span></td>
+                <td><span class="edificio-tag" style="background:${getEdificioColor(v.edificio, this.data.listas?.edificios)}">${v.edificio}</span></td>
                 <td>${v.tipo}</td><td>${v.motivo}</td><td>${v.proveedor}</td>
                 <td><span class="status-badge status-${v.estado.toLowerCase().replace(' ', '')}">${v.estado}</span></td>
                 <td class="actions-cell">
@@ -442,7 +442,7 @@ class MaintenanceApp {
 
             dayItems.slice(0, 4).forEach(item => {
                 const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#6b7280' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
-                const edColor = EDIFICIO_COLORS[eds.find(ed => this._getItemsForRange(cellDate, cellDate, ed).includes(item))] || '#6b7280';
+                const edColor = getEdificioColor(eds.find(ed => this._getItemsForRange(cellDate, cellDate, ed).includes(item)), eds);
                 const icon = item.type === 'tarea' ? 'fa-check-square' : item.type === 'visita' ? 'fa-calendar-check' : 'fa-exclamation-circle';
                 const done = item.estado === 'Completado';
                 html += `<div class="cal-event ${done ? 'cal-event-done' : ''}" style="--event-color:${color}">
@@ -470,7 +470,7 @@ class MaintenanceApp {
         html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#8b5cf6"></span>Visita</div>';
         html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#ef4444"></span>Incidencia</div>';
         eds.forEach(ed => {
-            html += `<div class="cal-legend-item"><span class="cal-legend-dot" style="background:${EDIFICIO_COLORS[ed] || '#6b7280'}"></span>${ed}</div>`;
+            html += `<div class="cal-legend-item"><span class="cal-legend-dot" style="background:${getEdificioColor(ed, eds)}"></span>${ed}</div>`;
         });
         html += '</div>';
 
@@ -502,7 +502,7 @@ class MaintenanceApp {
 
         html += '<div class="cal-week-body">';
         eds.forEach(ed => {
-            const edColor = EDIFICIO_COLORS[ed] || '#6b7280';
+            const edColor = getEdificioColor(ed, eds);
             html += `<div class="cal-week-building" style="--ed-color:${edColor}">
                 <div class="cal-week-ed-label"><span class="cal-week-ed-dot" style="background:${edColor}"></span>${ed}</div>`;
 
@@ -593,7 +593,7 @@ class MaintenanceApp {
                 return `<th class="${isT ? 'today-header' : ''}">${d} ${dd.getDate()}</th>`;
             }).join('')}</tr></thead><tbody>`;
             eds.forEach(ed => {
-                const edColor = EDIFICIO_COLORS[ed] || '#6b7280';
+                const edColor = getEdificioColor(ed, eds);
                 bodyContent += `<tr><td class="ed-label" style="border-left:4px solid ${edColor};font-weight:700">${ed}</td>`;
                 for (let d = 0; d < 7; d++) {
                     const dd = new Date(this.currentWeekStart); dd.setDate(dd.getDate() + d);
@@ -639,7 +639,7 @@ class MaintenanceApp {
                 <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>Tarea</div>
                 <div class="legend-item"><span class="legend-dot" style="background:#8b5cf6"></span>Visita</div>
                 <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>Incidencia</div>
-                ${eds.map(ed => `<div class="legend-item"><span class="legend-dot" style="background:${EDIFICIO_COLORS[ed] || '#6b7280'}"></span>${ed}</div>`).join('')}
+                ${eds.map(ed => `<div class="legend-item"><span class="legend-dot" style="background:${getEdificioColor(ed, eds)}"></span>${ed}</div>`).join('')}
             </div>
         </body></html>`;
         const w = window.open('', '_blank');
@@ -687,7 +687,7 @@ class MaintenanceApp {
         let html = `<div class="gantt-wrapper">
             <div class="gantt-sidebar" style="padding-top:${headerHeight}px">
                 ${allItems.map(item => {
-                    const edColor = EDIFICIO_COLORS[item.edificio] || '#6b7280';
+                    const edColor = getEdificioColor(item.edificio, eds);
                     const statusDot = item.estado === 'Completado' ? '#10b981' : item.estado === 'En Progreso' ? '#f59e0b' : '#94a3b8';
                     return `<div class="gantt-sidebar-row" style="height:${rowHeight}px">
                         <div class="gantt-sidebar-status" style="background:${statusDot}"></div>
@@ -763,7 +763,7 @@ class MaintenanceApp {
         tbody.innerHTML = inc.length ? inc.map(i => `
             <tr>
                 <td><strong>${i.id}</strong></td><td>${this.formatDate(i.fecha)}</td>
-                <td><span class="edificio-tag" style="background:${EDIFICIO_COLORS[i.edificio] || '#6b7280'}">${i.edificio}</span></td>
+                <td><span class="edificio-tag" style="background:${getEdificioColor(i.edificio, this.data.listas?.edificios)}">${i.edificio}</span></td>
                 <td>${i.descripcion}</td>
                 <td><span style="color:${CATEGORY_COLORS[i.categoria]};font-weight:500">${i.categoria}</span></td>
                 <td><span class="status-badge status-${i.prioridad.toLowerCase()}">${i.prioridad}</span></td>
@@ -819,7 +819,7 @@ class MaintenanceApp {
             return `
             <div class="informe-card">
                 <div class="informe-header">
-                    <div><span class="edificio-tag" style="background:${EDIFICIO_COLORS[inf.edificio] || '#6b7280'}">${inf.edificio}</span><span class="informe-date">${this.formatDate(inf.fecha)}</span></div>
+                    <div><span class="edificio-tag" style="background:${getEdificioColor(inf.edificio, this.data.listas?.edificios)}">${inf.edificio}</span><span class="informe-date">${this.formatDate(inf.fecha)}</span></div>
                     <div class="informe-actions">
                         <button class="btn-secondary btn-sm" onclick="app.printInforme('${inf.id}')"><i class="fas fa-print"></i></button>
                         <button class="btn-success btn-sm" onclick="app.editInforme('${inf.id}')"><i class="fas fa-edit"></i></button>
@@ -921,7 +921,7 @@ class MaintenanceApp {
     printInforme(id) {
         const inf = this.data.informesDiarios.find(x => x.id === id);
         if (!inf) return;
-        const edColor = EDIFICIO_COLORS[inf.edificio] || '#6b7280';
+        const edColor = getEdificioColor(inf.edificio, this.data.listas?.edificios);
         const section = (title, icon, items, color) => items?.length ? `<div class="section"><h3><i class="${icon}"></i> ${title}</h3><ul>${items.map(i => `<li style="border-left-color:${i.completada ? '#10b981' : color}"><span class="dot" style="background:${i.completada ? '#10b981' : color}"></span>${i.texto} ${i.completada ? '✓' : ''}</li>`).join('')}</ul></div>` : '';
 
         const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>

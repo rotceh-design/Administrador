@@ -42,3 +42,16 @@ const EDIFICIO_COLORS = {
     'San 2': '#d97706',
     'Valparaíso': '#dc2626'
 };
+
+const EDIFICIO_PALETTE = [
+    '#1e40af', '#059669', '#d97706', '#dc2626',
+    '#7c3aed', '#0891b2', '#c2410c', '#4f46e5',
+    '#16a34a', '#ca8a04', '#e11d48', '#9333ea'
+];
+
+function getEdificioColor(edificio, edificios) {
+    if (EDIFICIO_COLORS[edificio]) return EDIFICIO_COLORS[edificio];
+    const idx = (edificios || []).indexOf(edificio);
+    if (idx !== -1) return EDIFICIO_PALETTE[idx % EDIFICIO_PALETTE.length];
+    return '#6b7280';
+}

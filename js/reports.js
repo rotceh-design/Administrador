@@ -79,7 +79,7 @@ class ReportManager {
         tareas.forEach(t => { if (!eds[t.edificio]) eds[t.edificio] = { t: 0, v: 0, i: 0 }; eds[t.edificio].t++; });
         visitas.forEach(v => { if (!eds[v.edificio]) eds[v.edificio] = { t: 0, v: 0, i: 0 }; eds[v.edificio].v++; });
         incidencias.forEach(i => { if (!eds[i.edificio]) eds[i.edificio] = { t: 0, v: 0, i: 0 }; eds[i.edificio].i++; });
-        return Object.entries(eds).map(([e, d]) => `<tr><td><span class="edificio-tag" style="background:${EDIFICIO_COLORS[e] || '#6b7280'}">${e}</span></td><td>${d.t}</td><td>${d.v}</td><td>${d.i}</td></tr>`).join('');
+        return Object.entries(eds).map(([e, d]) => `<tr><td><span class="edificio-tag" style="background:${getEdificioColor(e, Object.keys(eds))}">${e}</span></td><td>${d.t}</td><td>${d.v}</td><td>${d.i}</td></tr>`).join('');
     }
 
     renderTareasReport(tareas, dateRange, edLabel) {
@@ -95,7 +95,7 @@ class ReportManager {
             </div>
             <table class="report-table">
                 <thead><tr><th>ID</th><th>Actividad</th><th>Categoría</th><th>Edificio</th><th>Fecha</th><th>Estado</th></tr></thead>
-                <tbody>${tareas.map(t => `<tr><td>${t.id}</td><td>${t.actividad}</td><td><span style="color:${CATEGORY_COLORS[t.categoria]}">${t.categoria}</span></td><td><span class="edificio-tag" style="background:${EDIFICIO_COLORS[t.edificio] || '#6b7280'}">${t.edificio}</span></td><td>${app.formatDate(t.fecha)}</td><td><span class="status-badge status-${t.estado.toLowerCase().replace(' ','')}">${t.estado}</span></td></tr>`).join('')}</tbody>
+                <tbody>${tareas.map(t => `<tr><td>${t.id}</td><td>${t.actividad}</td><td><span style="color:${CATEGORY_COLORS[t.categoria]}">${t.categoria}</span></td><td><span class="edificio-tag" style="background:${getEdificioColor(t.edificio, app.data.listas?.edificios || [])}">${t.edificio}</span></td><td>${app.formatDate(t.fecha)}</td><td><span class="status-badge status-${t.estado.toLowerCase().replace(' ','')}">${t.estado}</span></td></tr>`).join('')}</tbody>
             </table>
         </div>`;
     }
@@ -113,7 +113,7 @@ class ReportManager {
             </div>
             <table class="report-table">
                 <thead><tr><th>ID</th><th>Fecha</th><th>Edificio</th><th>Tipo</th><th>Motivo</th><th>Proveedor</th><th>Estado</th></tr></thead>
-                <tbody>${visitas.map(v => `<tr><td>${v.id}</td><td>${app.formatDate(v.fecha)}</td><td><span class="edificio-tag" style="background:${EDIFICIO_COLORS[v.edificio] || '#6b7280'}">${v.edificio}</span></td><td>${v.tipo}</td><td>${v.motivo}</td><td>${v.proveedor}</td><td><span class="status-badge status-${v.estado.toLowerCase().replace(' ','')}">${v.estado}</span></td></tr>`).join('')}</tbody>
+                <tbody>${visitas.map(v => `<tr><td>${v.id}</td><td>${app.formatDate(v.fecha)}</td><td><span class="edificio-tag" style="background:${getEdificioColor(v.edificio, app.data.listas?.edificios || [])}">${v.edificio}</span></td><td>${v.tipo}</td><td>${v.motivo}</td><td>${v.proveedor}</td><td><span class="status-badge status-${v.estado.toLowerCase().replace(' ','')}">${v.estado}</span></td></tr>`).join('')}</tbody>
             </table>
         </div>`;
     }
@@ -131,7 +131,7 @@ class ReportManager {
             </div>
             <table class="report-table">
                 <thead><tr><th>ID</th><th>Fecha</th><th>Edificio</th><th>Descripción</th><th>Prioridad</th><th>Estado</th></tr></thead>
-                <tbody>${incidencias.map(i => `<tr><td>${i.id}</td><td>${app.formatDate(i.fecha)}</td><td><span class="edificio-tag" style="background:${EDIFICIO_COLORS[i.edificio] || '#6b7280'}">${i.edificio}</span></td><td>${i.descripcion}</td><td><span class="status-badge status-${i.prioridad.toLowerCase()}">${i.prioridad}</span></td><td><span class="status-badge status-${i.estado.toLowerCase().replace(' ','')}">${i.estado}</span></td></tr>`).join('')}</tbody>
+                <tbody>${incidencias.map(i => `<tr><td>${i.id}</td><td>${app.formatDate(i.fecha)}</td><td><span class="edificio-tag" style="background:${getEdificioColor(i.edificio, app.data.listas?.edificios || [])}">${i.edificio}</span></td><td>${i.descripcion}</td><td><span class="status-badge status-${i.prioridad.toLowerCase()}">${i.prioridad}</span></td><td><span class="status-badge status-${i.estado.toLowerCase().replace(' ','')}">${i.estado}</span></td></tr>`).join('')}</tbody>
             </table>
         </div>`;
     }
