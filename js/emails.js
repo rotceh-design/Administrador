@@ -205,7 +205,119 @@ class EmailGenerator {
         return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
     }
 
-    async buildEmail() {
+    async generateDraftEmail(type, data) {
+        await this.getConfig();
+        const cfg = this.config;
+        const prov = data.proveedorId ? app.data.proveedores.find(p => p.id === data.proveedorId) : null;
+        const proveedorNombre = prov ? prov.contacto : 'Proveedor';
+        const edificio = data.edificio || '';
+        const categoria = data.categoria || data.tipo || '';
+        const ubicacion = data.ubicacion || '';
+        const prioridad = data.prioridad || 'Media';
+        const fecha = data.fecha ? this.formatDate(data.fecha) : this.formatDate(new Date().toISOString().split('T')[0]);
+        const descripcion = data.actividad || data.motivo || data.descripcion || '';
+        const observaciones = data.observaciones || '';
+
+        let subject = '';
+        let body = '';
+        let emailType = '';
+
+        if (type === 'tarea') {
+            emailType = 'solicitud';
+            subject = `Solicitud de Servicio - ${categoria} - ${edificio}`;
+            body = `Estimado/a ${proveedorNombre}:
+
+Reciba un cordial saludo.
+
+Por medio de la presente, nos dirigimos a usted para solicitar el servicio de mantenimiento de tipo "${categoria}" para las instalaciones del CIRION ${edificio}.
+
+DETALLE DEL SERVICIO:
+• CIRION: ${edificio}
+• Categoría: ${categoria}
+• Ubicación: ${ubicacion}
+• Prioridad: ${prioridad}
+• Fecha solicitada: ${fecha}
+
+DESCRIPCIÓN:
+${descripcion}
+${observaciones ? `\nOBSERVACIONES:\n${observaciones}` : ''}
+
+Agradecemos confirmar disponibilidad y proporcionar cotización para dicho servicio.
+
+Quedamos a sus órdenes para cualquier consulta.
+
+Atentamente,
+${cfg.administrador}
+CIRION ${edificio}
+${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
+${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
+        } else if (type === 'visita') {
+            emailType = 'visita';
+            subject = `Solicitud de Visita - ${edificio} - ${categoria || 'Visita'}`;
+            body = `Estimado/a ${proveedorNombre}:
+
+Reciba un cordial saludo.
+
+Por medio de la presente, nos dirigimos a usted para solicitar una visita técnica a las instalaciones del CIRION ${edificio}.
+
+DETALLE DE LA VISITA:
+• CIRION: ${edificio}
+• Tipo de visita: ${categoria || 'Por definir'}
+• Ubicación: ${ubicacion || 'General'}
+• Fecha solicitada: ${fecha}
+
+MOTIVO DE LA VISITA:
+${descripcion}
+${observaciones ? `\nOBSERVACIONES:\n${observaciones}` : ''}
+
+Agradecemos confirmar disponibilidad y horario para dicha visita.
+
+Quedamos a sus órdenes para cualquier consulta.
+
+Atentamente,
+${cfg.administrador}
+CIRION ${edificio}
+${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
+${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
+        } else if (type === 'incidencia') {
+            emailType = 'incidencia';
+            subject = `REPORTE DE INCIDENCIA - ${edificio} - ${ubicacion} [${prioridad}]`;
+            body = `Estimado/a ${proveedorNombre}:
+
+Se reporta la siguiente incidencia que requiere atención:
+
+DATOS DE LA INCIDENCIA:
+• CIRION: ${edificio}
+• Ubicación: ${ubicacion}
+• Categoría: ${categoria}
+• Prioridad: ${prioridad}
+• Fecha: ${fecha}
+
+DESCRIPCIÓN DEL PROBLEMA:
+${descripcion}
+${observaciones ? `\nOBSERVACIONES:\n${observaciones}` : ''}
+
+Solicitamos atender esta incidencia a la brevedad posible.
+
+Atentamente,
+${cfg.administrador}
+CIRION ${edificio}
+${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
+${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
+        }
+
+        return {
+            id: 'EMAIL-' + Date.now(),
+            type: emailType,
+            to: prov ? prov.email : '',
+            toNombre: proveedorNombre,
+            toEmpresa: prov ? prov.empresa : '',
+            subject,
+            body,
+            estado: 'Borrador',
+            createdAt: new Date().toISOString()
+        };
+    }
         await this.getConfig();
         const prov = this.getProveedorInfo();
         const proveedorNombre = prov ? prov.contacto : 'Proveedor';

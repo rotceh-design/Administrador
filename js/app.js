@@ -332,6 +332,7 @@ class MaintenanceApp {
                 <td>${this.escapeHtml(t.ubicacion)}</td><td>${this.escapeHtml(t.proveedor)}</td><td>${this.formatDate(t.fecha)}</td>
                 <td><span class="status-badge status-${t.estado.toLowerCase().replace(' ', '')}">${this.escapeHtml(t.estado)}</span></td>
                 <td class="actions-cell">
+                    ${t.emails && t.emails.length ? `<button class="btn-sm" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640" onclick="app.showRecordEmails('tarea','${t.id}')" title="${t.emails.length} correo(s)"><i class="fas fa-envelope"></i> ${t.emails.length}</button>` : ''}
                     <button class="btn-success btn-sm" onclick="app.editTarea('${t.id}')"><i class="fas fa-edit"></i></button>
                     <button class="btn-danger btn-sm" onclick="app.deleteTarea('${t.id}')"><i class="fas fa-trash"></i></button>
                 </td>
@@ -357,7 +358,16 @@ class MaintenanceApp {
         try {
             const d = { actividad: this.gv('tareaActividad'), categoria: this.gv('tareaCategoria'), edificio: this.gv('tareaEdificio'), ubicacion: this.gv('tareaUbicacion'), proveedor: this.gv('tareaProveedor'), fecha: this.gv('tareaFecha'), estado: this.gv('tareaEstado'), observaciones: this.gv('tareaObservaciones') };
             if (id) { const i = this.data.tareas.findIndex(t => t.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); this.data.tareas[i] = { ...this.data.tareas[i], ...d }; await db.put('tareas', this.data.tareas[i]); } }
-            else { d.id = 'TAR-' + Date.now(); d.createdAt = new Date().toISOString(); this.data.tareas.push(d); await db.put('tareas', d); }
+            else {
+                d.id = 'TAR-' + Date.now(); d.createdAt = new Date().toISOString(); d.emails = [];
+                if (d.proveedor) {
+                    try {
+                        const email = await emailGenerator.generateDraftEmail('tarea', { ...d, proveedorId: d.proveedor });
+                        if (email.to) d.emails.push(email);
+                    } catch (e) { console.error('Error generating email draft:', e); }
+                }
+                this.data.tareas.push(d); await db.put('tareas', d);
+            }
             this.closeModal(); this.renderTareas(); this.showToast(id ? 'Tarea actualizada' : 'Tarea creada', 'success');
         } catch (err) { console.error('Error guardando tarea:', err); this.showToast('Error al guardar', 'error'); }
     }
@@ -393,6 +403,7 @@ class MaintenanceApp {
                 <td>${checklistBadges || '<span style="color:#94a3b8;font-size:11px">Sin checklist</span>'}</td>
                 <td><span class="status-badge status-${v.estado.toLowerCase().replace(' ', '')}">${v.estado}</span></td>
                 <td class="actions-cell">
+                    ${v.emails && v.emails.length ? `<button class="btn-sm" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640" onclick="app.showRecordEmails('visita','${v.id}')" title="${v.emails.length} correo(s)"><i class="fas fa-envelope"></i> ${v.emails.length}</button>` : ''}
                     <button class="btn-success btn-sm" onclick="app.editVisita('${v.id}')" title="Editar"><i class="fas fa-edit"></i></button>
                     ${v.checklist && v.checklist.length ? `<button class="btn-sm" style="background:#8b5cf6;color:#fff" onclick="app.openInspeccion('${v.id}')" title="Realizar Inspección"><i class="fas fa-clipboard-check"></i></button>` : ''}
                     <button class="btn-primary btn-sm" onclick="app.exportVisitaChecklist('${v.id}')" title="Exportar Plan Checklist"><i class="fas fa-file-excel"></i></button>
@@ -437,7 +448,16 @@ class MaintenanceApp {
             const checklist = [...document.querySelectorAll('.visita-checklist:checked')].map(cb => cb.value);
             const d = { fecha: this.gv('visitaFecha'), edificio: this.gv('visitaEdificio'), tipo: this.gv('visitaTipo'), motivo: this.gv('visitaMotivo'), proveedor: this.gv('visitaProveedor'), estado: this.gv('visitaEstado'), observaciones: this.gv('visitaObservaciones'), responsable: '', checklist };
             if (id) { const i = this.data.visitas.findIndex(v => v.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); this.data.visitas[i] = { ...this.data.visitas[i], ...d }; await db.put('visitas', this.data.visitas[i]); } }
-            else { d.id = 'VIS-' + Date.now(); d.createdAt = new Date().toISOString(); this.data.visitas.push(d); await db.put('visitas', d); }
+            else {
+                d.id = 'VIS-' + Date.now(); d.createdAt = new Date().toISOString(); d.emails = [];
+                if (d.proveedor) {
+                    try {
+                        const email = await emailGenerator.generateDraftEmail('visita', { ...d, proveedorId: d.proveedor });
+                        if (email.to) d.emails.push(email);
+                    } catch (e) { console.error('Error generating email draft:', e); }
+                }
+                this.data.visitas.push(d); await db.put('visitas', d);
+            }
             this.closeModal(); this.renderVisitas(); this.showToast(id ? 'Visita actualizada' : 'Visita creada', 'success');
         } catch (err) { console.error('Error guardando visita:', err); this.showToast('Error al guardar', 'error'); }
     }
@@ -1210,6 +1230,7 @@ class MaintenanceApp {
                 <td>${this.escapeHtml(i.proveedor)}</td>
                 <td><span class="status-badge status-${i.estado.toLowerCase().replace(' ', '')}">${this.escapeHtml(i.estado)}</span></td>
                 <td class="actions-cell">
+                    ${i.emails && i.emails.length ? `<button class="btn-sm" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640" onclick="app.showRecordEmails('incidencia','${i.id}')" title="${i.emails.length} correo(s)"><i class="fas fa-envelope"></i> ${i.emails.length}</button>` : ''}
                     <button class="btn-success btn-sm" onclick="app.editIncidencia('${i.id}')"><i class="fas fa-edit"></i></button>
                     <button class="btn-danger btn-sm" onclick="app.deleteIncidencia('${i.id}')"><i class="fas fa-trash"></i></button>
                 </td>
@@ -1238,8 +1259,19 @@ class MaintenanceApp {
             else {
                 d.id = 'INC-' + Date.now();
                 d.createdAt = new Date().toISOString();
+                d.emails = [];
                 this.data.incidencias.push(d);
                 await db.put('incidencias', d);
+
+                if (d.proveedor) {
+                    try {
+                        const email = await emailGenerator.generateDraftEmail('incidencia', { ...d, proveedorId: d.proveedor });
+                        if (email.to) {
+                            d.emails.push(email);
+                            await db.put('incidencias', d);
+                        }
+                    } catch (e) { console.error('Error generating email draft:', e); }
+                }
 
                 const tarea = {
                     id: 'TAR-' + Date.now(),
@@ -1251,7 +1283,8 @@ class MaintenanceApp {
                     fecha: d.fecha,
                     estado: 'Pendiente',
                     observaciones: `Generada desde incidencia ${d.id}. Prioridad: ${d.prioridad}. ${d.observaciones || ''}`,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    emails: d.emails ? [...d.emails] : []
                 };
                 this.data.tareas.push(tarea);
                 await db.put('tareas', tarea);
@@ -1263,6 +1296,48 @@ class MaintenanceApp {
 
     editIncidencia(id) { const i = this.data.incidencias.find(x => x.id === id); if (i) this.showModal('Editar Incidencia', this.getIncidenciaForm(i), () => this.saveIncidencia(i.id)); }
     async deleteIncidencia(id) { if (!confirm('¿Eliminar incidencia?')) return; this.data.incidencias = this.data.incidencias.filter(i => i.id !== id); await db.delete('incidencias', id); this.renderIncidencias(); this.showToast('Incidencia eliminada', 'success'); }
+
+    showRecordEmails(type, id) {
+        let record;
+        if (type === 'tarea') record = this.data.tareas.find(t => t.id === id);
+        else if (type === 'visita') record = this.data.visitas.find(v => v.id === id);
+        else if (type === 'incidencia') record = this.data.incidencias.find(i => i.id === id);
+        if (!record || !record.emails || !record.emails.length) return;
+
+        const emailsHTML = record.emails.map(email => {
+            const estadoColor = email.estado === 'Borrador' ? '#f59e0b' : email.estado === 'Enviado' ? '#22c55e' : '#64748b';
+            return `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <span style="font-size:12px;font-weight:600;color:${estadoColor};background:${estadoColor}15;padding:2px 8px;border-radius:4px">${email.estado}</span>
+                    <span style="font-size:11px;color:#94a3b8">${email.createdAt ? new Date(email.createdAt).toLocaleDateString('es-CL') : ''}</span>
+                </div>
+                <div style="font-size:12px;color:#64748b;margin-bottom:4px"><strong>Para:</strong> ${email.to || 'Sin destinatario'} ${email.toEmpresa ? `(${email.toEmpresa})` : ''}</div>
+                <div style="font-size:13px;font-weight:600;color:#1e293b;margin-bottom:6px">${email.subject}</div>
+                <pre style="font-size:12px;color:#475569;white-space:pre-wrap;font-family:Arial,sans-serif;background:#f8fafc;padding:10px;border-radius:6px;max-height:150px;overflow-y:auto;margin:0">${email.body}</pre>
+                <div style="display:flex;gap:6px;margin-top:8px">
+                    <button class="btn-sm btn-primary" onclick="app.copyEmailBody('${type}','${id}','${email.id}')" title="Copiar texto"><i class="fas fa-copy"></i> Copiar</button>
+                    <button class="btn-sm btn-success" onclick="app.openEmailClientFor('${email.to}','${email.subject}','${email.body}')" title="Abrir correo"><i class="fas fa-envelope"></i> Enviar</button>
+                </div>
+            </div>`;
+        }).join('');
+
+        this.showModal(`Correos — ${record.id}`, `<div>${emailsHTML}</div>`, null);
+        document.getElementById('modalSave').style.display = 'none';
+    }
+
+    copyEmailBody(type, id, emailId) {
+        let record;
+        if (type === 'tarea') record = this.data.tareas.find(t => t.id === id);
+        else if (type === 'visita') record = this.data.visitas.find(v => v.id === id);
+        else if (type === 'incidencia') record = this.data.incidencias.find(i => i.id === id);
+        const email = record?.emails?.find(e => e.id === emailId);
+        if (!email) return;
+        navigator.clipboard.writeText(email.body).then(() => this.showToast('Correo copiado', 'success'));
+    }
+
+    openEmailClientFor(to, subject, body) {
+        window.open(`mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    }
 
     // =================== INFORMES DIARIOS ===================
     renderInformes() {
