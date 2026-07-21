@@ -476,12 +476,20 @@ class MaintenanceApp {
                 const s = savedItems.find(si => si.name === itemName);
                 const status = s?.status || '';
                 const obs = s?.obs || '';
-                return `<tr style="background:${j % 2 === 0 ? '#fff' : '#f8fafc'}">
+                const passMark = status === 'pass' ? '✓' : '☐';
+                        const failMark = status === 'fail' ? '✗' : '☐';
+                        const passColor = status === 'pass' ? '#22c55e' : '#e2e8f0';
+                        const failColor = status === 'fail' ? '#ef4444' : '#e2e8f0';
+                        const passBg = status === 'pass' ? '#dcfce7' : '#fff';
+                        const failBg = status === 'fail' ? '#fef2f2' : '#fff';
+                        const passTxt = status === 'pass' ? '#16a34a' : '#cbd5e1';
+                        const failTxt = status === 'fail' ? '#dc2626' : '#cbd5e1';
+                        return `<tr style="background:${j % 2 === 0 ? '#fff' : '#f8fafc'}">
                     <td style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#334155;width:30px;text-align:center;color:#94a3b8">${j + 1}</td>
                     <td style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#334155;font-weight:500">${itemName}</td>
                     <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:center">
-                        <button type="button" class="insp-btn-insp" data-cat="${cat}" data-item="${j}" data-status="pass" style="width:36px;height:36px;border-radius:8px;border:2px solid ${status === 'pass' ? '#22c55e' : '#e2e8f0'};background:${status === 'pass' ? '#dcfce7' : '#fff'};cursor:pointer;font-size:18px;color:${status === 'pass' ? '#16a34a' : '#cbd5e1'};transition:all 0.15s;display:inline-flex;align-items:center;justify-content:center">✓</button>
-                        <button type="button" class="insp-btn-insp" data-cat="${cat}" data-item="${j}" data-status="fail" style="width:36px;height:36px;border-radius:8px;border:2px solid ${status === 'fail' ? '#ef4444' : '#e2e8f0'};background:${status === 'fail' ? '#fef2f2' : '#fff'};cursor:pointer;font-size:18px;color:${status === 'fail' ? '#dc2626' : '#cbd5e1'};margin-left:4px;transition:all 0.15s;display:inline-flex;align-items:center;justify-content:center">✗</button>
+                        <button type="button" class="insp-btn-insp" data-cat="${cat}" data-item="${j}" data-status="pass" data-selected="${status === 'pass' ? 'true' : 'false'}" style="width:36px;height:36px;border-radius:8px;border:2px solid ${passColor};background:${passBg};cursor:pointer;font-size:18px;color:${passTxt};transition:all 0.15s;display:inline-flex;align-items:center;justify-content:center">✓</button>
+                        <button type="button" class="insp-btn-insp" data-cat="${cat}" data-item="${j}" data-status="fail" data-selected="${status === 'fail' ? 'true' : 'false'}" style="width:36px;height:36px;border-radius:8px;border:2px solid ${failColor};background:${failBg};cursor:pointer;font-size:18px;color:${failTxt};margin-left:4px;transition:all 0.15s;display:inline-flex;align-items:center;justify-content:center">✗</button>
                     </td>
                     <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0"><input type="text" class="insp-obs" data-cat="${cat}" data-item="${j}" value="${this.escapeHtml(obs)}" placeholder="Observaciones..." style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:12px;color:#334155;outline:none"></td>
                 </tr>`;
@@ -542,6 +550,7 @@ class MaintenanceApp {
                     s.style.borderColor = '#e2e8f0';
                     s.style.background = '#fff';
                     s.style.color = '#cbd5e1';
+                    s.dataset.selected = 'false';
                 });
                 const catData = CHECKLIST_CATEGORIES[cat];
                 const color = catData ? catData.color : '#3b82f6';
@@ -568,8 +577,8 @@ class MaintenanceApp {
                     const failBtn = document.querySelector(`.insp-btn-insp[data-cat="${cat}"][data-item="${j}"][data-status="fail"]`);
                     const obsInput = document.querySelector(`.insp-obs[data-cat="${cat}"][data-item="${j}"]`);
                     let status = 'pending';
-                    if (passBtn && passBtn.style.borderColor === 'rgb(34, 197, 94)') status = 'pass';
-                    else if (failBtn && failBtn.style.borderColor === 'rgb(239, 68, 68)') status = 'fail';
+                    if (passBtn?.dataset.selected === 'true') status = 'pass';
+                    else if (failBtn?.dataset.selected === 'true') status = 'fail';
                     return { name: itemName, status, obs: obsInput?.value || '' };
                 });
                 const catObsEl = document.querySelector(`.insp-cat-obs[data-cat="${cat}"]`);
