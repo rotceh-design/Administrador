@@ -794,8 +794,27 @@ class MaintenanceApp {
     async saveIncidencia(id = null) {
         const d = { fecha: new Date().toISOString().split('T')[0], edificio: this.gv('incEdificio'), descripcion: this.gv('incDescripcion'), categoria: this.gv('incCategoria'), ubicacion: this.gv('incUbicacion'), prioridad: this.gv('incPrioridad'), proveedor: this.gv('incProveedor'), estado: this.gv('incEstado'), observaciones: this.gv('incObservaciones'), fotos: [] };
         if (id) { const i = this.data.incidencias.findIndex(x => x.id === id); if (i !== -1) { d.id = id; this.data.incidencias[i] = { ...this.data.incidencias[i], ...d }; await db.put('incidencias', this.data.incidencias[i]); } }
-        else { d.id = 'INC-' + Date.now(); this.data.incidencias.push(d); await db.put('incidencias', d); }
-        this.closeModal(); this.renderIncidencias(); this.showToast(id ? 'Incidencia actualizada' : 'Incidencia creada', 'success');
+        else {
+            d.id = 'INC-' + Date.now();
+            this.data.incidencias.push(d);
+            await db.put('incidencias', d);
+
+            const tarea = {
+                id: 'TAR-' + Date.now(),
+                actividad: `Resolver incidencia: ${d.descripcion}`,
+                categoria: d.categoria,
+                edificio: d.edificio,
+                ubicacion: d.ubicacion,
+                proveedor: d.proveedor,
+                fecha: d.fecha,
+                estado: 'Pendiente',
+                observaciones: `Generada desde incidencia ${d.id}. Prioridad: ${d.prioridad}. ${d.observaciones || ''}`
+            };
+            this.data.tareas.push(tarea);
+            await db.put('tareas', tarea);
+            this.showToast(`Tarea automática creada: ${tarea.actividad}`, 'info');
+        }
+        this.closeModal(); this.renderIncidencias(); this.renderDashboard(); this.updateNotificationBadge(); this.showToast(id ? 'Incidencia actualizada' : 'Incidencia creada + tarea generada', 'success');
     }
 
     editIncidencia(id) { const i = this.data.incidencias.find(x => x.id === id); if (i) this.showModal('Editar Incidencia', this.getIncidenciaForm(i), () => this.saveIncidencia(i.id)); }
