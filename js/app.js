@@ -63,6 +63,7 @@ class MaintenanceApp {
                 this.populateFilters();
                 this.bindEvents();
                 this.renderDashboard();
+                this.updateSidebarBadges();
                 this.updateNotificationBadge();
             } else {
                 // User is not logged in
@@ -382,12 +383,12 @@ class MaintenanceApp {
                 }
                 this.data.tareas.push(d); await db.put('tareas', d);
             }
-            this.closeModal(); this.renderTareas(); this.showToast(id ? 'Tarea actualizada' : 'Tarea creada', 'success');
+            this.closeModal(); this.renderTareas(); this.updateSidebarBadges(); this.showToast(id ? 'Tarea actualizada' : 'Tarea creada', 'success');
         } catch (err) { console.error('Error guardando tarea:', err); this.showToast('Error al guardar', 'error'); }
     }
 
     editTarea(id) { const t = this.data.tareas.find(x => x.id === id); if (t) this.showModal('Editar Tarea', this.getTareaForm(t), () => this.saveTarea(t.id)); }
-    async deleteTarea(id) { if (!confirm('¿Eliminar tarea?')) return; this.data.tareas = this.data.tareas.filter(t => t.id !== id); await db.delete('tareas', id); this.renderTareas(); this.showToast('Tarea eliminada', 'success'); }
+    async deleteTarea(id) { if (!confirm('¿Eliminar tarea?')) return; this.data.tareas = this.data.tareas.filter(t => t.id !== id); await db.delete('tareas', id); this.renderTareas(); this.updateSidebarBadges(); this.showToast('Tarea eliminada', 'success'); }
 
     // =================== VISITAS ===================
     renderVisitas() {
@@ -488,12 +489,12 @@ class MaintenanceApp {
                 }
                 this.data.visitas.push(d); await db.put('visitas', d);
             }
-            this.closeModal(); this.renderVisitas(); this.showToast(id ? 'Visita actualizada' : 'Visita creada', 'success');
+            this.closeModal(); this.renderVisitas(); this.updateSidebarBadges(); this.showToast(id ? 'Visita actualizada' : 'Visita creada', 'success');
         } catch (err) { console.error('Error guardando visita:', err); this.showToast('Error al guardar', 'error'); }
     }
 
     editVisita(id) { const v = this.data.visitas.find(x => x.id === id); if (v) this.showModal('Editar Visita', this.getVisitaForm(v), () => this.saveVisita(v.id)); }
-    async deleteVisita(id) { if (!confirm('¿Eliminar visita?')) return; this.data.visitas = this.data.visitas.filter(v => v.id !== id); await db.delete('visitas', id); this.renderVisitas(); this.showToast('Visita eliminada', 'success'); }
+    async deleteVisita(id) { if (!confirm('¿Eliminar visita?')) return; this.data.visitas = this.data.visitas.filter(v => v.id !== id); await db.delete('visitas', id); this.renderVisitas(); this.updateSidebarBadges(); this.showToast('Visita eliminada', 'success'); }
 
     openInspeccion(id) {
         const v = this.data.visitas.find(x => x.id === id);
@@ -1338,12 +1339,12 @@ class MaintenanceApp {
                 await db.put('tareas', tarea);
                 this.showToast(`Tarea automática creada: ${tarea.actividad}`, 'info');
             }
-            this.closeModal(); this.renderIncidencias(); this.renderDashboard(); this.updateNotificationBadge(); this.showToast(id ? 'Incidencia actualizada' : 'Incidencia creada + tarea generada', 'success');
+            this.closeModal(); this.renderIncidencias(); this.updateSidebarBadges(); this.renderDashboard(); this.updateNotificationBadge(); this.showToast(id ? 'Incidencia actualizada' : 'Incidencia creada + tarea generada', 'success');
         } catch (err) { console.error('Error guardando incidencia:', err); this.showToast('Error al guardar', 'error'); }
     }
 
     editIncidencia(id) { const i = this.data.incidencias.find(x => x.id === id); if (i) this.showModal('Editar Incidencia', this.getIncidenciaForm(i), () => this.saveIncidencia(i.id)); }
-    async deleteIncidencia(id) { if (!confirm('¿Eliminar incidencia?')) return; this.data.incidencias = this.data.incidencias.filter(i => i.id !== id); await db.delete('incidencias', id); this.renderIncidencias(); this.showToast('Incidencia eliminada', 'success'); }
+    async deleteIncidencia(id) { if (!confirm('¿Eliminar incidencia?')) return; this.data.incidencias = this.data.incidencias.filter(i => i.id !== id); await db.delete('incidencias', id); this.renderIncidencias(); this.updateSidebarBadges(); this.showToast('Incidencia eliminada', 'success'); }
 
     showRecordEmails(type, id) {
         let record;
@@ -1700,6 +1701,18 @@ class MaintenanceApp {
         t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${msg}</span>`;
         c.appendChild(t);
         setTimeout(() => { t.style.animation = 'toastOut 0.3s ease forwards'; setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    updateSidebarBadges() {
+        const tareas = this.data.tareas?.filter(t => t.estado !== 'Completado').length || 0;
+        const visitas = this.data.visitas?.filter(v => v.estado !== 'Completado').length || 0;
+        const incidencias = this.data.incidencias?.filter(i => i.estado !== 'Completado').length || 0;
+        const t = document.getElementById('navTareasBadge');
+        const v = document.getElementById('navVisitasBadge');
+        const inc = document.getElementById('navIncidenciasBadge');
+        if (t) t.textContent = tareas;
+        if (v) v.textContent = visitas;
+        if (inc) inc.textContent = incidencias;
     }
 
     updateNotificationBadge() {
