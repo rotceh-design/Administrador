@@ -81,9 +81,12 @@ class MaintenanceApp {
         const listas = await db.getAll('listas');
         listas.forEach(l => this.data.listas[l.key] = l.value);
 
-        const defaults = { categorias: [], ubicaciones: [], edificios: [], estados: INITIAL_DATA.estados, prioridades: INITIAL_DATA.prioridades, tiposVisita: [], meses: INITIAL_DATA.meses };
+        const defaults = { categorias: [], ubicaciones: [], edificios: [], estados: INITIAL_DATA.estados, prioridades: INITIAL_DATA.prioridades, tiposVisita: INITIAL_DATA.tiposVisita, meses: INITIAL_DATA.meses };
         for (const [k, v] of Object.entries(defaults)) {
-            if (!this.data.listas[k]) { this.data.listas[k] = v; await db.put('listas', { key: k, value: v }); }
+            if (!this.data.listas[k] || (Array.isArray(this.data.listas[k]) && this.data.listas[k].length === 0 && v.length > 0)) {
+                this.data.listas[k] = v;
+                await db.put('listas', { key: k, value: v });
+            }
         }
     }
 

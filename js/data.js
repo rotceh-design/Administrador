@@ -2,7 +2,7 @@ const INITIAL_DATA = {
     edificios: [],
     categorias: [],
     ubicaciones: [],
-    tiposVisita: [],
+    tiposVisita: ['Inspección', 'Mantenimiento Preventivo', 'Mantenimiento Correctivo', 'Supervisión', 'Auditoría'],
     estados: ['Pendiente', 'En Progreso', 'Completado', 'Cancelado', 'Reprogramado'],
     prioridades: ['Alta', 'Media', 'Baja'],
     meses: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
