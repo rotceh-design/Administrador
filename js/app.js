@@ -721,15 +721,15 @@ class MaintenanceApp {
         const result = [];
         tareas.forEach(t => {
             const f = new Date(t.fecha + 'T00:00:00');
-            if (f >= start && f <= end) result.push({ date: f, label: t.actividad, cat: t.categoria, type: 'tarea', estado: t.estado });
+            if (f >= start && f <= end) result.push({ date: f, label: t.actividad, cat: t.categoria, type: 'tarea', estado: t.estado, edificio });
         });
         visitas.forEach(v => {
             const f = new Date(v.fecha + 'T00:00:00');
-            if (f >= start && f <= end) result.push({ date: f, label: v.motivo, cat: v.tipo, type: 'visita', estado: v.estado });
+            if (f >= start && f <= end) result.push({ date: f, label: v.motivo, cat: v.tipo, type: 'visita', estado: v.estado, edificio });
         });
         incidencias.forEach(i => {
             const f = new Date(i.fecha + 'T00:00:00');
-            if (f >= start && f <= end) result.push({ date: f, label: i.descripcion, cat: i.categoria, type: 'incidencia', estado: i.estado });
+            if (f >= start && f <= end) result.push({ date: f, label: i.descripcion, cat: i.categoria, type: 'incidencia', estado: i.estado, edificio });
         });
         return result;
     }
@@ -742,6 +742,8 @@ class MaintenanceApp {
         const startPad = (firstDay.getDay() + 6) % 7;
         const totalDays = lastDay.getDate();
         const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        const dayNamesFull = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const meses = this.data.listas.meses || INITIAL_DATA.meses;
 
         const rangeStart = new Date(year, month, 1);
         const rangeEnd = new Date(year, month + 1, 0);
@@ -760,24 +762,24 @@ class MaintenanceApp {
             const isToday = cellDate.getTime() === today.getTime();
             const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
             const dayItems = allItems.filter(i => i.date.getDate() === day);
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-            html += `<div class="cal-cell ${isToday ? 'cal-today' : ''} ${isWeekend ? 'cal-weekend' : ''}">
+            html += `<div class="cal-cell ${isToday ? 'cal-today' : ''} ${isWeekend ? 'cal-weekend' : ''} cal-cell-clickable" data-date="${dateStr}" onclick="app.showDayDetail('${dateStr}', '${eds.join(',')}')">
                 <div class="cal-day-header"><span class="cal-day-num ${isToday ? 'cal-day-today' : ''}">${day}</span>${dayItems.length ? `<span class="cal-day-count">${dayItems.length}</span>` : ''}</div>
                 <div class="cal-day-items">`;
 
-            dayItems.slice(0, 6).forEach(item => {
+            dayItems.slice(0, 4).forEach(item => {
                 const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#3b82f6' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
                 const icon = item.type === 'tarea' ? 'fa-check-square' : item.type === 'visita' ? 'fa-calendar-day' : 'fa-exclamation-triangle';
                 const done = item.estado === 'Completado';
-                const typeLabel = item.type === 'tarea' ? 'T' : item.type === 'visita' ? 'V' : 'I';
                 html += `<div class="cal-event ${done ? 'cal-event-done' : ''}" style="--event-color:${color}">
                     <span class="cal-event-icon" style="background:${color}"><i class="fas ${icon}"></i></span>
                     <span class="cal-event-text">${item.label}</span>
                 </div>`;
             });
 
-            if (dayItems.length > 6) {
-                html += `<div class="cal-more">+${dayItems.length - 6} más</div>`;
+            if (dayItems.length > 4) {
+                html += `<div class="cal-more">+${dayItems.length - 4} más</div>`;
             }
 
             html += '</div></div>';
@@ -791,7 +793,7 @@ class MaintenanceApp {
         html += '</div></div>';
 
         html += '<div class="cal-legend">';
-        html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#6b7280"></span>Tarea</div>';
+        html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#3b82f6"></span>Tarea</div>';
         html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#8b5cf6"></span>Visita</div>';
         html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#ef4444"></span>Incidencia</div>';
         eds.forEach(ed => {
@@ -799,7 +801,86 @@ class MaintenanceApp {
         });
         html += '</div>';
 
+        html += '<div id="dayDetailPanel"></div>';
+
         grid.innerHTML = html;
+    }
+
+    showDayDetail(dateStr, edsStr) {
+        const eds = edsStr.split(',');
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const cellDate = new Date(y, m - 1, d);
+        const dayItems = eds.flatMap(ed => this._getItemsForRange(cellDate, cellDate, ed));
+        const meses = this.data.listas.meses || INITIAL_DATA.meses;
+        const dayNamesFull = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const panel = document.getElementById('dayDetailPanel');
+        if (!panel) return;
+
+        document.querySelectorAll('.cal-cell').forEach(c => c.classList.remove('cal-cell-selected'));
+        const selected = document.querySelector(`.cal-cell[data-date="${dateStr}"]`);
+        if (selected) selected.classList.add('cal-cell-selected');
+
+        if (!dayItems.length) {
+            panel.innerHTML = `<div class="day-detail">
+                <div class="day-detail-header">
+                    <div><span class="day-detail-title">${dayNamesFull[cellDate.getDay()]} ${d} de ${meses[m - 1]} ${y}</span></div>
+                    <button class="day-detail-close" onclick="app.closeDayDetail()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="day-detail-empty"><i class="fas fa-calendar-day"></i><p>Sin actividades programadas</p></div>
+            </div>`;
+            panel.style.display = 'block';
+            return;
+        }
+
+        const itemsHTML = dayItems.map(item => {
+            const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#3b82f6' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
+            const icon = item.type === 'tarea' ? 'fa-check-square' : item.type === 'visita' ? 'fa-calendar-day' : 'fa-exclamation-triangle';
+            const typeLabel = item.type === 'tarea' ? 'Tarea' : item.type === 'visita' ? 'Visita' : 'Incidencia';
+            const done = item.estado === 'Completado';
+            const edColor = getEdificioColor(item.edificio || eds[0], eds);
+            return `<div class="day-detail-item ${done ? 'day-detail-item-done' : ''}" style="border-left-color:${color}">
+                <div class="day-detail-item-header">
+                    <span class="day-detail-item-icon" style="background:${color}"><i class="fas ${icon}"></i></span>
+                    <div class="day-detail-item-info">
+                        <span class="day-detail-item-title">${item.label}</span>
+                        <span class="day-detail-item-meta">
+                            <span class="day-detail-item-type">${typeLabel}</span>
+                            ${item.cat ? `<span class="day-detail-item-cat">${item.cat}</span>` : ''}
+                            <span class="day-detail-item-ed" style="background:${edColor}20;color:${edColor}">${item.edificio || eds[0]}</span>
+                        </span>
+                    </div>
+                    <span class="day-detail-item-status ${done ? 'status-done' : 'status-pending'}">${item.estado}</span>
+                </div>
+            </div>`;
+        }).join('');
+
+        const tareas = dayItems.filter(i => i.type === 'tarea');
+        const visitas = dayItems.filter(i => i.type === 'visita');
+        const incidencias = dayItems.filter(i => i.type === 'incidencia');
+
+        panel.innerHTML = `<div class="day-detail">
+            <div class="day-detail-header">
+                <div>
+                    <span class="day-detail-title">${dayNamesFull[cellDate.getDay()]} ${d} de ${meses[m - 1]} ${y}</span>
+                    <span class="day-detail-count">${dayItems.length} actividad${dayItems.length > 1 ? 'es' : ''}</span>
+                </div>
+                <button class="day-detail-close" onclick="app.closeDayDetail()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="day-detail-stats">
+                ${tareas.length ? `<span class="day-detail-stat" style="background:#3b82f610;color:#3b82f6"><i class="fas fa-check-square"></i> ${tareas.length} Tareas</span>` : ''}
+                ${visitas.length ? `<span class="day-detail-stat" style="background:#8b5cf610;color:#8b5cf6"><i class="fas fa-calendar-day"></i> ${visitas.length} Visitas</span>` : ''}
+                ${incidencias.length ? `<span class="day-detail-stat" style="background:#ef444410;color:#ef4444"><i class="fas fa-exclamation-triangle"></i> ${incidencias.length} Incidencias</span>` : ''}
+            </div>
+            <div class="day-detail-items">${itemsHTML}</div>
+        </div>`;
+        panel.style.display = 'block';
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    closeDayDetail() {
+        const panel = document.getElementById('dayDetailPanel');
+        if (panel) { panel.style.display = 'none'; panel.innerHTML = ''; }
+        document.querySelectorAll('.cal-cell').forEach(c => c.classList.remove('cal-cell-selected'));
     }
 
     _renderWeeklyCalendar(grid, eds, today) {
