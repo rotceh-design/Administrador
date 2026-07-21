@@ -23,13 +23,16 @@ class QuoteManager {
             id: 'COT-' + Date.now(),
             numero: this.getNewNumber(),
             fecha: new Date().toISOString().split('T')[0],
+            tipoDocumento: 'boleta',
             cliente: '',
+            rutCliente: '',
             direccionCliente: '',
             telefonoCliente: '',
             emailCliente: '',
             items: [{ descripcion: '', cantidad: 1, precioUnitario: 0 }],
             subtotal: 0,
             iva: 0,
+            ivaPorcentaje: 0,
             total: 0,
             notas: '',
             estado: 'Borrador'
@@ -40,7 +43,13 @@ class QuoteManager {
         quote.subtotal = quote.items.reduce((sum, item) => {
             return sum + (item.cantidad * item.precioUnitario);
         }, 0);
-        quote.iva = quote.subtotal * 0.16;
+        if (quote.tipoDocumento === 'factura') {
+            quote.ivaPorcentaje = 19;
+            quote.iva = quote.subtotal * 0.19;
+        } else {
+            quote.ivaPorcentaje = 0;
+            quote.iva = 0;
+        }
         quote.total = quote.subtotal + quote.iva;
         return quote;
     }
@@ -93,6 +102,7 @@ class QuoteManager {
                     <thead>
                         <tr>
                             <th>Número</th>
+                            <th>Tipo</th>
                             <th>Fecha</th>
                             <th>Cliente</th>
                             <th>Total</th>
@@ -104,6 +114,7 @@ class QuoteManager {
                         ${quotes.map(q => `
                             <tr>
                                 <td><strong>${q.numero}</strong></td>
+                                <td><span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:${q.tipoDocumento === 'factura' ? '#1e40af20;color:#1e40af' : '#05966920;color:#059669'}">${q.tipoDocumento === 'factura' ? 'Factura' : 'Boleta'}</span></td>
                                 <td>${app.formatDate(q.fecha)}</td>
                                 <td>${q.cliente || 'Sin cliente'}</td>
                                 <td>${this.formatCurrency(q.total)}</td>
@@ -137,13 +148,16 @@ class QuoteManager {
 
         document.getElementById('quoteNumber').textContent = quote.numero;
         document.getElementById('quoteDate').textContent = app.formatDate(quote.fecha);
+        document.getElementById('quoteTipoDoc').value = quote.tipoDocumento || 'boleta';
         document.getElementById('quoteClient').value = quote.cliente;
+        document.getElementById('quoteRut').value = quote.rutCliente || '';
         document.getElementById('quoteClientAddress').value = quote.direccionCliente;
         document.getElementById('quoteClientPhone').value = quote.telefonoCliente;
         document.getElementById('quoteNotes').value = quote.notas;
 
         this.renderItems();
         this.updateTotals();
+        this._toggleRutField();
 
         list.style.display = 'none';
         editor.style.display = 'flex';
@@ -189,15 +203,54 @@ class QuoteManager {
         this.updateTotals();
     }
 
+    toggleTipoDocumento(tipo) {
+        this.currentQuote.tipoDocumento = tipo;
+        const btnBoleta = document.getElementById('btnTipoBoleta');
+        const btnFactura = document.getElementById('btnTipoFactura');
+        if (tipo === 'boleta') {
+            if (btnBoleta) { btnBoleta.style.background = '#059669'; btnBoleta.style.borderColor = '#059669'; btnBoleta.style.color = '#fff'; }
+            if (btnFactura) { btnFactura.style.background = '#f8fafc'; btnFactura.style.borderColor = '#e2e8f0'; btnFactura.style.color = '#64748b'; }
+        } else {
+            if (btnFactura) { btnFactura.style.background = '#1e40af'; btnFactura.style.borderColor = '#1e40af'; btnFactura.style.color = '#fff'; }
+            if (btnBoleta) { btnBoleta.style.background = '#f8fafc'; btnBoleta.style.borderColor = '#e2e8f0'; btnBoleta.style.color = '#64748b'; }
+        }
+        this._toggleRutField();
+        this.updateTotals();
+    }
+
+    _toggleRutField() {
+        const rutGroup = document.getElementById('quoteRutGroup');
+        const ivaRow = document.getElementById('quoteIvaRow');
+        const tipo = this.currentQuote.tipoDocumento;
+        if (rutGroup) rutGroup.style.display = tipo === 'factura' ? 'block' : 'none';
+        if (ivaRow) ivaRow.style.display = tipo === 'factura' ? 'flex' : 'none';
+        const btnBoleta = document.getElementById('btnTipoBoleta');
+        const btnFactura = document.getElementById('btnTipoFactura');
+        if (tipo === 'boleta') {
+            if (btnBoleta) { btnBoleta.style.background = '#059669'; btnBoleta.style.borderColor = '#059669'; btnBoleta.style.color = '#fff'; }
+            if (btnFactura) { btnFactura.style.background = '#f8fafc'; btnFactura.style.borderColor = '#e2e8f0'; btnFactura.style.color = '#64748b'; }
+        } else {
+            if (btnFactura) { btnFactura.style.background = '#1e40af'; btnFactura.style.borderColor = '#1e40af'; btnFactura.style.color = '#fff'; }
+            if (btnBoleta) { btnBoleta.style.background = '#f8fafc'; btnBoleta.style.borderColor = '#e2e8f0'; btnBoleta.style.color = '#64748b'; }
+        }
+    }
+
     updateTotals() {
         this.calculateTotals(this.currentQuote);
         document.getElementById('quoteSubtotal').value = this.formatCurrency(this.currentQuote.subtotal);
-        document.getElementById('quoteTax').value = this.formatCurrency(this.currentQuote.iva);
+        const ivaInput = document.getElementById('quoteTax');
+        if (ivaInput) {
+            ivaInput.value = this.formatCurrency(this.currentQuote.iva);
+            const label = ivaInput.closest('.total-row')?.querySelector('span');
+            if (label) label.textContent = `IVA (${this.currentQuote.ivaPorcentaje}%):`;
+        }
         document.getElementById('quoteTotal').value = this.formatCurrency(this.currentQuote.total);
     }
 
     async saveCurrentQuote() {
+        this.currentQuote.tipoDocumento = document.getElementById('quoteTipoDoc').value;
         this.currentQuote.cliente = document.getElementById('quoteClient').value;
+        this.currentQuote.rutCliente = document.getElementById('quoteRut').value;
         this.currentQuote.direccionCliente = document.getElementById('quoteClientAddress').value;
         this.currentQuote.telefonoCliente = document.getElementById('quoteClientPhone').value;
         this.currentQuote.notas = document.getElementById('quoteNotes').value;
@@ -219,11 +272,15 @@ class QuoteManager {
     }
 
     generatePrintHTML(quote) {
+        const isFactura = quote.tipoDocumento === 'factura';
+        const docTitle = isFactura ? 'FACTURA' : 'BOLETA';
+        const ivaLabel = isFactura ? `IVA (${quote.ivaPorcentaje || 19}%):` : '';
+
         return `<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Cotización ${quote.numero}</title>
+    <title>${docTitle} ${quote.numero}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
@@ -244,16 +301,18 @@ class QuoteManager {
         .total-final { font-size: 1.2rem; font-weight: bold; color: #1e40af; border-bottom: none; }
         .notes { margin-top: 30px; padding: 20px; background: #fffbeb; border-radius: 8px; border-left: 4px solid #f59e0b; }
         .terms { margin-top: 20px; font-size: 0.85rem; color: #666; }
+        .doc-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; color: #fff; background: ${isFactura ? '#1e40af' : '#059669'}; margin-bottom: 8px; }
         @media print { body { padding: 20px; } }
     </style>
 </head>
 <body>
     <div class="header">
         <div class="logo">
-            <span style="font-size:2rem;">&#127970;</span> ProMant
+            <span style="font-size:2rem;">&#127970;</span> CIRION
         </div>
         <div class="title">
-            <h1>COTIZACI&Oacute;N</h1>
+            <div class="doc-badge">${docTitle}</div>
+            <h1>${docTitle}</h1>
             <p>N&ordm;: ${quote.numero}</p>
             <p>Fecha: ${app.formatDate(quote.fecha)}</p>
         </div>
@@ -261,6 +320,7 @@ class QuoteManager {
     <div class="client">
         <h3>CLIENTE:</h3>
         <p><strong>${quote.cliente || '---'}</strong></p>
+        ${isFactura && quote.rutCliente ? `<p>RUT: ${quote.rutCliente}</p>` : ''}
         <p>${quote.direccionCliente || ''}</p>
         <p>${quote.telefonoCliente || ''}</p>
     </div>
@@ -287,14 +347,14 @@ class QuoteManager {
     <div class="totals">
         <div class="totals-box">
             <div class="total-row"><span>Subtotal:</span><span>${this.formatCurrency(quote.subtotal)}</span></div>
-            <div class="total-row"><span>IVA (16%):</span><span>${this.formatCurrency(quote.iva)}</span></div>
+            ${isFactura ? `<div class="total-row"><span>${ivaLabel}</span><span>${this.formatCurrency(quote.iva)}</span></div>` : ''}
             <div class="total-row total-final"><span>TOTAL:</span><span>${this.formatCurrency(quote.total)}</span></div>
         </div>
     </div>
     ${quote.notas ? `<div class="notes"><h4>Notas:</h4><p>${quote.notas}</p></div>` : ''}
     <div class="terms">
-        <p>Esta cotizaci&oacute;n tiene una validez de 30 d&iacute;as.</p>
-        <p>Forma de pago: [Especificar]</p>
+        <p>${isFactura ? 'Documento tributario conforme a la legislaci&oacute;n chilena.' : 'Esta boleta no constituye documento tributario.'}</p>
+        <p>Validez: 30 d&iacute;as | Forma de pago: [Especificar]</p>
     </div>
 </body>
 </html>`;

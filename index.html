@@ -397,16 +397,27 @@
                             <div class="quote-preview" id="quotePreview">
                                 <div class="quote-document">
                                     <div class="quote-header-doc">
-                                        <div class="quote-logo"><i class="fas fa-building"></i><span>Facility Management</span></div>
+                                        <div class="quote-logo"><i class="fas fa-building"></i><span>CIRION</span></div>
                                         <div class="quote-title">
                                             <h2>COTIZACIÓN</h2>
                                             <p>Nº: <span id="quoteNumber">COT-001</span></p>
                                             <p>Fecha: <span id="quoteDate"></span></p>
                                         </div>
                                     </div>
+                                    <div style="margin-bottom:16px">
+                                        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Tipo de Documento</label>
+                                        <div style="display:flex;gap:8px">
+                                            <button type="button" onclick="quoteManager.toggleTipoDocumento('boleta')" id="btnTipoBoleta" style="flex:1;padding:10px;border-radius:8px;border:2px solid #059669;background:#059669;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s">📋 Boleta</button>
+                                            <button type="button" onclick="quoteManager.toggleTipoDocumento('factura')" id="btnTipoFactura" style="flex:1;padding:10px;border-radius:8px;border:2px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s">🧾 Factura</button>
+                                        </div>
+                                        <input type="hidden" id="quoteTipoDoc" value="boleta">
+                                    </div>
                                     <div class="quote-client">
                                         <h4>CLIENTE:</h4>
                                         <input type="text" id="quoteClient" placeholder="Nombre / Empresa">
+                                        <div id="quoteRutGroup" style="display:none">
+                                            <input type="text" id="quoteRut" placeholder="RUT (ej: 12.345.678-9)">
+                                        </div>
                                         <input type="text" id="quoteClientAddress" placeholder="CIRION / Dirección">
                                         <input type="text" id="quoteClientPhone" placeholder="Teléfono / Email">
                                     </div>
@@ -418,7 +429,7 @@
                                     <div class="quote-totals">
                                         <div class="totals-box">
                                             <div class="total-row"><span>Subtotal:</span><input type="text" id="quoteSubtotal" readonly></div>
-                                            <div class="total-row"><span>IVA (16%):</span><input type="text" id="quoteTax" readonly></div>
+                                            <div class="total-row" id="quoteIvaRow" style="display:none"><span>IVA (19%):</span><input type="text" id="quoteTax" readonly></div>
                                             <div class="total-row total-final"><span>TOTAL:</span><input type="text" id="quoteTotal" readonly></div>
                                         </div>
                                     </div>
