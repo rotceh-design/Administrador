@@ -16,7 +16,7 @@ class ReportManager {
         if (dateStart) { ft = ft.filter(t => t.fecha >= dateStart); fi = fi.filter(i => i.fecha >= dateStart); fv = fv.filter(v => v.fecha >= dateStart); }
         if (dateEnd) { ft = ft.filter(t => t.fecha <= dateEnd); fi = fi.filter(i => i.fecha <= dateEnd); fv = fv.filter(v => v.fecha <= dateEnd); }
 
-        const edLabel = edificio || 'Todos los edificios';
+        const edLabel = edificio || 'Todos los CIRION';
         const dateLabel = (dateStart && dateEnd) ? `${app.formatDate(dateStart)} - ${app.formatDate(dateEnd)}` : 'Todos los registros';
         const preview = document.getElementById('reportPreview');
 
@@ -58,9 +58,9 @@ class ReportManager {
                 </table>
             </div>
             <div class="report-section">
-                <h3>Por Edificio</h3>
+                <h3>Por CIRION</h3>
                 <table class="report-table">
-                    <thead><tr><th>Edificio</th><th>Tareas</th><th>Visitas</th><th>Incidencias</th></tr></thead>
+                    <thead><tr><th>CIRION</th><th>Tareas</th><th>Visitas</th><th>Incidencias</th></tr></thead>
                     <tbody>${this.getEdStats(tareas, visitas, incidencias)}</tbody>
                 </table>
             </div>
@@ -94,7 +94,7 @@ class ReportManager {
                 <div class="report-kpi"><h3>${tareas.filter(t => t.estado === 'En Progreso').length}</h3><p>En Progreso</p></div>
             </div>
             <table class="report-table">
-                <thead><tr><th>ID</th><th>Actividad</th><th>Categoría</th><th>Edificio</th><th>Fecha</th><th>Estado</th></tr></thead>
+                <thead><tr><th>ID</th><th>Actividad</th><th>Categoría</th><th>CIRION</th><th>Fecha</th><th>Estado</th></tr></thead>
                 <tbody>${tareas.map(t => `<tr><td>${t.id}</td><td>${t.actividad}</td><td><span style="color:${CATEGORY_COLORS[t.categoria]}">${t.categoria}</span></td><td><span class="edificio-tag" style="background:${getEdificioColor(t.edificio, app.data.listas?.edificios || [])}">${t.edificio}</span></td><td>${app.formatDate(t.fecha)}</td><td><span class="status-badge status-${t.estado.toLowerCase().replace(' ','')}">${t.estado}</span></td></tr>`).join('')}</tbody>
             </table>
         </div>`;
@@ -112,7 +112,7 @@ class ReportManager {
                 <div class="report-kpi"><h3>${visitas.length}</h3><p>Total</p></div>
             </div>
             <table class="report-table">
-                <thead><tr><th>ID</th><th>Fecha</th><th>Edificio</th><th>Tipo</th><th>Motivo</th><th>Proveedor</th><th>Estado</th></tr></thead>
+                <thead><tr><th>ID</th><th>Fecha</th><th>CIRION</th><th>Tipo</th><th>Motivo</th><th>Proveedor</th><th>Estado</th></tr></thead>
                 <tbody>${visitas.map(v => `<tr><td>${v.id}</td><td>${app.formatDate(v.fecha)}</td><td><span class="edificio-tag" style="background:${getEdificioColor(v.edificio, app.data.listas?.edificios || [])}">${v.edificio}</span></td><td>${v.tipo}</td><td>${v.motivo}</td><td>${v.proveedor}</td><td><span class="status-badge status-${v.estado.toLowerCase().replace(' ','')}">${v.estado}</span></td></tr>`).join('')}</tbody>
             </table>
         </div>`;
@@ -130,7 +130,7 @@ class ReportManager {
                 <div class="report-kpi green"><h3>${incidencias.filter(i => i.estado === 'Completado').length}</h3><p>Resueltas</p></div>
             </div>
             <table class="report-table">
-                <thead><tr><th>ID</th><th>Fecha</th><th>Edificio</th><th>Descripción</th><th>Prioridad</th><th>Estado</th></tr></thead>
+                <thead><tr><th>ID</th><th>Fecha</th><th>CIRION</th><th>Descripción</th><th>Prioridad</th><th>Estado</th></tr></thead>
                 <tbody>${incidencias.map(i => `<tr><td>${i.id}</td><td>${app.formatDate(i.fecha)}</td><td><span class="edificio-tag" style="background:${getEdificioColor(i.edificio, app.data.listas?.edificios || [])}">${i.edificio}</span></td><td>${i.descripcion}</td><td><span class="status-badge status-${i.prioridad.toLowerCase()}">${i.prioridad}</span></td><td><span class="status-badge status-${i.estado.toLowerCase().replace(' ','')}">${i.estado}</span></td></tr>`).join('')}</tbody>
             </table>
         </div>`;

@@ -39,31 +39,79 @@ class Database {
     }
 
     async getAll(storeName) {
-        const snap = await this._fb.getDocs(this._col(storeName));
-        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        try {
+            const snap = await this._fb.getDocs(this._col(storeName));
+            return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => !d.isDeleted);
+        } catch (e) { console.error(`Error leyendo ${storeName}:`, e); return []; }
+    }
+
+    async getAllIncludingDeleted(storeName) {
+        try {
+            const snap = await this._fb.getDocs(this._col(storeName));
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) { console.error(`Error leyendo ${storeName}:`, e); return []; }
+    }
+
+    async getDeleted(storeName) {
+        try {
+            const all = await this.getAllIncludingDeleted(storeName);
+            return all.filter(d => d.isDeleted);
+        } catch (e) { console.error(`Error leyendo eliminados de ${storeName}:`, e); return []; }
     }
 
     async get(storeName, key) {
-        const snap = await this._fb.getDoc(this._doc(storeName, key));
-        return snap.exists() ? { id: snap.id, ...snap.data() } : undefined;
+        try {
+            const snap = await this._fb.getDoc(this._doc(storeName, key));
+            return snap.exists() ? { id: snap.id, ...snap.data() } : undefined;
+        } catch (e) { console.error(`Error leyendo ${storeName}/${key}:`, e); return undefined; }
     }
 
     async put(storeName, data) {
-        const id = data.id || data.key || String(Date.now());
-        const docData = { ...data, id };
-        await this._fb.setDoc(this._doc(storeName, id), docData);
-        return id;
+        try {
+            const id = data.id || data.key || String(Date.now());
+            const docData = { ...data, id };
+            await this._fb.setDoc(this._doc(storeName, id), docData);
+            return id;
+        } catch (e) { console.error(`Error guardando en ${storeName}:`, e); throw e; }
     }
 
     async delete(storeName, key) {
-        await this._fb.deleteDoc(this._doc(storeName, key));
+        try {
+            // Soft delete: mark as deleted instead of removing
+            const docRef = this._doc(storeName, key);
+            const snap = await this._fb.getDoc(docRef);
+            if (snap.exists()) {
+                await this._fb.setDoc(docRef, { ...snap.data(), isDeleted: true, deletedAt: new Date().toISOString() });
+            }
+        } catch (e) { console.error(`Error eliminando ${storeName}/${key}:`, e); throw e; }
+    }
+
+    async hardDelete(storeName, key) {
+        try {
+            await this._fb.deleteDoc(this._doc(storeName, key));
+        } catch (e) { console.error(`Error eliminando permanentemente ${storeName}/${key}:`, e); throw e; }
+    }
+
+    async restore(storeName, key) {
+        try {
+            const docRef = this._doc(storeName, key);
+            const snap = await this._fb.getDoc(docRef);
+            if (snap.exists()) {
+                const data = snap.data();
+                delete data.isDeleted;
+                delete data.deletedAt;
+                await this._fb.setDoc(docRef, data);
+            }
+        } catch (e) { console.error(`Error restaurando ${storeName}/${key}:`, e); throw e; }
     }
 
     async clear(storeName) {
-        const snap = await this._fb.getDocs(this._col(storeName));
-        const batch = this._fb.writeBatch(this.db);
-        snap.docs.forEach(d => batch.delete(d.ref));
-        await batch.commit();
+        try {
+            const snap = await this._fb.getDocs(this._col(storeName));
+            const batch = this._fb.writeBatch(this.db);
+            snap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+        } catch (e) { console.error(`Error limpiando ${storeName}:`, e); throw e; }
     }
 
     async count(storeName) {

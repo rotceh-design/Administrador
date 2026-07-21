@@ -33,7 +33,7 @@ class EmailGenerator {
         return {
             solicitud: `
                 <div class="form-row">
-                    <div class="form-group"><label>Edificio *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
+                    <div class="form-group"><label>CIRION *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
                     <div class="form-group"><label>Proveedor *</label><select id="emailProveedor" onchange="emailGenerator.onProveedorChange()"><option value="">Seleccionar proveedor...</option>${provOptions}</select></div>
                 </div>
                 <div class="form-row">
@@ -49,7 +49,7 @@ class EmailGenerator {
             `,
             incidencia: `
                 <div class="form-row">
-                    <div class="form-group"><label>Edificio *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
+                    <div class="form-group"><label>CIRION *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
                     <div class="form-group"><label>Proveedor *</label><select id="emailProveedor" onchange="emailGenerator.onProveedorChange()"><option value="">Seleccionar proveedor...</option>${provOptions}</select></div>
                 </div>
                 <div class="form-row">
@@ -65,7 +65,7 @@ class EmailGenerator {
             `,
             seguimiento: `
                 <div class="form-row">
-                    <div class="form-group"><label>Edificio *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
+                    <div class="form-group"><label>CIRION *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
                     <div class="form-group"><label>Proveedor *</label><select id="emailProveedor" onchange="emailGenerator.onProveedorChange()"><option value="">Seleccionar proveedor...</option>${provOptions}</select></div>
                 </div>
                 <div class="form-row">
@@ -83,7 +83,7 @@ class EmailGenerator {
             `,
             confirmacion: `
                 <div class="form-row">
-                    <div class="form-group"><label>Edificio *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
+                    <div class="form-group"><label>CIRION *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
                     <div class="form-group"><label>Proveedor *</label><select id="emailProveedor" onchange="emailGenerator.onProveedorChange()"><option value="">Seleccionar proveedor...</option>${provOptions}</select></div>
                 </div>
                 <div class="form-row">
@@ -97,7 +97,7 @@ class EmailGenerator {
             `,
             recordatorio: `
                 <div class="form-row">
-                    <div class="form-group"><label>Edificio *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
+                    <div class="form-group"><label>CIRION *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
                     <div class="form-group"><label>Proveedor *</label><select id="emailProveedor" onchange="emailGenerator.onProveedorChange()"><option value="">Seleccionar proveedor...</option>${provOptions}</select></div>
                 </div>
                 <div class="form-row">
@@ -115,7 +115,7 @@ class EmailGenerator {
             `,
             cotizacion: `
                 <div class="form-row">
-                    <div class="form-group"><label>Edificio *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
+                    <div class="form-group"><label>CIRION *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
                     <div class="form-group"><label>Proveedor *</label><select id="emailProveedor" onchange="emailGenerator.onProveedorChange()"><option value="">Seleccionar proveedor...</option>${provOptions}</select></div>
                 </div>
                 <div class="form-row">
@@ -216,10 +216,10 @@ class EmailGenerator {
 
 Reciba un cordial saludo.
 
-Por medio de la presente, nos dirigimos a usted para solicitar el servicio de mantenimiento de tipo "${categoria}" para las instalaciones del edificio ${edificio}.
+Por medio de la presente, nos dirigimos a usted para solicitar el servicio de mantenimiento de tipo "${categoria}" para las instalaciones del CIRION ${edificio}.
 
 DETALLE DEL SERVICIO:
-• Edificio: ${edificio}
+• CIRION: ${edificio}
 • Categoría: ${categoria}
 • Ubicación: ${ubicacion}
 • Prioridad: ${prioridad}
@@ -235,7 +235,7 @@ Quedamos a sus órdenes para cualquier consulta.
 
 Atentamente,
 ${cfg.administrador}
-Edificio ${edificio}
+CIRION ${edificio}
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
                 break;
@@ -247,7 +247,7 @@ ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
 Se reporta la siguiente incidencia que requiere atención:
 
 DATOS DE LA INCIDENCIA:
-• Edificio: ${edificio}
+• CIRION: ${edificio}
 • Fecha: ${fecha}
 • Ubicación: ${ubicacion}
 • Categoría: ${categoria}
@@ -261,7 +261,7 @@ Solicitamos su pronta intervención para la resolución del problema.
 
 Atentamente,
 ${cfg.administrador}
-Edificio ${edificio}
+CIRION ${edificio}
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
                 break;
@@ -273,7 +273,7 @@ ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
 Le escribimos para dar seguimiento a la siguiente actividad:
 
 DATOS DE LA ACTIVIDAD:
-• Edificio: ${edificio}
+• CIRION: ${edificio}
 • Actividad: ${actividad || 'No especificada'}
 • Categoría: ${categoria}
 • Ubicación: ${ubicacion}
@@ -287,7 +287,7 @@ Agradecemos nos proporcione una actualización del avance.
 
 Atentamente,
 ${cfg.administrador}
-Edificio ${edificio}`;
+CIRION ${edificio}`;
                 break;
 
             case 'confirmacion':
@@ -297,7 +297,7 @@ Edificio ${edificio}`;
 Por medio de la presente confirmamos la recepción y conformidad del trabajo realizado:
 
 DETALLE:
-• Edificio: ${edificio}
+• CIRION: ${edificio}
 • Actividad: ${actividad}
 • Ubicación: ${ubicacion}
 • Fecha de realización: ${fecha}
@@ -308,7 +308,7 @@ Agradecemos su pronta respuesta y quedamos a disposición para futuros trabajos.
 
 Atentamente,
 ${cfg.administrador}
-Edificio ${edificio}`;
+CIRION ${edificio}`;
                 break;
 
             case 'recordatorio':
@@ -318,7 +318,7 @@ Edificio ${edificio}`;
 Le recordamos que la siguiente actividad se encuentra pendiente:
 
 DATOS:
-• Edificio: ${edificio}
+• CIRION: ${edificio}
 • Actividad: ${actividad || 'No especificada'}
 • Categoría: ${categoria}
 • Ubicación: ${ubicacion}
@@ -330,7 +330,7 @@ Solicitamos atender a la mayor brevedad posible.
 
 Atentamente,
 ${cfg.administrador}
-Edificio ${edificio}`;
+CIRION ${edificio}`;
                 break;
 
             case 'cotizacion':
@@ -342,7 +342,7 @@ Reciba un cordial saludo.
 Solicitamos nos proporcione cotización para el siguiente servicio:
 
 DETALLE:
-• Edificio: ${edificio}
+• CIRION: ${edificio}
 • Tipo de servicio: ${categoria}
 • Ubicación: ${ubicacion}
 ${cantidad ? `• Cantidad estimada: ${cantidad}` : ''}
@@ -362,7 +362,7 @@ Quedamos a sus órdenes.
 
 Atentamente,
 ${cfg.administrador}
-Edificio ${edificio}
+CIRION ${edificio}
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
                 break;

@@ -35,13 +35,16 @@ class PhotoManager {
                         dataUrl = canvas.toDataURL('image/jpeg', quality);
                     }
 
-                    resolve({
-                        dataUrl,
-                        originalName: file.name,
-                        width,
-                        height,
-                        sizeKB: Math.round(dataUrl.length * 0.75 / 1024)
-                    });
+                    canvas.toBlob((blob) => {
+                        resolve({
+                            blob,
+                            dataUrl,
+                            originalName: file.name,
+                            width,
+                            height,
+                            sizeKB: Math.round(dataUrl.length * 0.75 / 1024)
+                        });
+                    }, 'image/jpeg', quality);
                 };
                 img.onerror = reject;
                 img.src = e.target.result;
@@ -70,20 +73,34 @@ class PhotoManager {
     }
 
     async savePhoto(photoData, categoria, edificio, descripcion, ubicacion) {
-        const id = 'FOTO-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+        const id = 'FOTO-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+        let photoUrl = photoData.dataUrl;
+
+        // Upload to Firebase Storage if available
+        if (window._storage && window._fbStorage && photoData.blob) {
+            try {
+                const storageRef = window._fbStorage.ref(window._storage, `fotos/${id}.jpg`);
+                await window._fbStorage.uploadBytes(storageRef, photoData.blob);
+                photoUrl = await window._fbStorage.getDownloadURL(storageRef);
+            } catch (e) {
+                console.warn('Storage upload failed, using base64 fallback:', e);
+            }
+        }
+
         const photo = {
             id,
-            dataUrl: photoData.dataUrl,
+            url: photoUrl,
             originalName: photoData.originalName,
             width: photoData.width,
             height: photoData.height,
             sizeKB: photoData.sizeKB,
             categoria: categoria || 'Sin categoría',
-            edificio: edificio || 'Sin edificio',
+            edificio: edificio || 'Sin CIRION',
             ubicacion: ubicacion || 'Sin ubicación',
             descripcion: descripcion || '',
             fecha: new Date().toISOString().split('T')[0],
-            hora: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+            hora: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+            createdAt: new Date().toISOString()
         };
 
         await db.put('fotos', photo);
@@ -91,11 +108,22 @@ class PhotoManager {
     }
 
     async deletePhoto(id) {
+        // Delete from Storage if available
+        if (window._storage && window._fbStorage) {
+            try {
+                const storageRef = window._fbStorage.ref(window._storage, `fotos/${id}.jpg`);
+                await window._fbStorage.deleteObject(storageRef);
+            } catch (e) {
+                console.warn('Storage delete failed:', e);
+            }
+        }
         await db.delete('fotos', id);
     }
 
     async getAllPhotos() {
-        return await db.getAll('fotos');
+        const photos = await db.getAll('fotos');
+        // Support both old (dataUrl) and new (url) format
+        return photos.map(p => ({ ...p, displayUrl: p.url || p.dataUrl }));
     }
 
     async getPhotosByFilter(categoria, ubicacion) {
@@ -114,7 +142,7 @@ class PhotoManager {
         container.innerHTML = photos.map(photo => `
             <div class="photo-card" data-id="${photo.id}">
                 <div class="photo-image" onclick="photoManager.viewPhoto('${photo.id}')">
-                    <img src="${photo.dataUrl}" alt="${photo.descripcion || photo.originalName}" loading="lazy">
+                    <img src="${photo.displayUrl || photo.url || photo.dataUrl}" alt="${photo.descripcion || photo.originalName}" loading="lazy">
                     <div class="photo-overlay">
                         <button class="photo-action-btn" onclick="event.stopPropagation(); photoManager.viewPhoto('${photo.id}')" title="Ver"><i class="fas fa-expand"></i></button>
                         <button class="photo-action-btn danger" onclick="event.stopPropagation(); photoManager.confirmDelete('${photo.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
@@ -140,7 +168,7 @@ class PhotoManager {
         const img = document.getElementById('imageViewerImg');
         const info = document.getElementById('imageViewerInfo');
 
-        img.src = photo.dataUrl;
+        img.src = photo.url || photo.dataUrl;
         info.innerHTML = `
             <h4>${photo.descripcion || photo.originalName}</h4>
             <p><strong>Ubicación:</strong> ${photo.ubicacion} | <strong>Categoría:</strong> ${photo.categoria}</p>

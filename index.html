@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="app-container">
+    <div class="app-container" style="display:none">
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
@@ -83,9 +83,10 @@
                     <div class="avatar"><i class="fas fa-user-tie"></i></div>
                     <div class="user-details">
                         <span class="user-name" id="userName">Administrador</span>
-                        <span class="user-role">Facility Manager</span>
+                        <span class="user-role" id="userRole">Facility Manager</span>
                     </div>
                 </div>
+                <button class="logout-btn" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
             </div>
         </aside>
 
@@ -100,7 +101,7 @@
                 </div>
                 <div class="header-right">
                     <select class="filter-select" id="filterEdificioGlobal" style="min-width:140px;">
-                        <option value="">Todos los Edificios</option>
+                        <option value="">Todos los CIRION</option>
                     </select>
                     <div class="search-box">
                         <i class="fas fa-search"></i>
@@ -125,7 +126,7 @@
                     <div class="kpi-grid">
                         <div class="kpi-card kpi-blue">
                             <div class="kpi-icon"><i class="fas fa-building"></i></div>
-                            <div class="kpi-info"><h3 id="kpiEdificios">4</h3><p>Edificios</p></div>
+                            <div class="kpi-info"><h3 id="kpiEdificios">4</h3><p>CIRION</p></div>
                         </div>
                         <div class="kpi-card kpi-green">
                             <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
@@ -165,7 +166,7 @@
                     <div class="section-header">
                         <div class="filters">
                             <select id="filterCategoria" class="filter-select"><option value="">Todas las categorías</option></select>
-                            <select id="filterEdificio" class="filter-select"><option value="">Todos los edificios</option></select>
+                            <select id="filterEdificio" class="filter-select"><option value="">Todos los CIRION</option></select>
                             <select id="filterEstado" class="filter-select">
                                 <option value="">Todos los estados</option>
                                 <option value="Pendiente">Pendiente</option>
@@ -179,7 +180,7 @@
                         <table class="data-table" id="tareasTable">
                             <thead>
                                 <tr>
-                                    <th>ID</th><th>Actividad</th><th>Categoría</th><th>Edificio</th>
+                                    <th>ID</th><th>Actividad</th><th>Categoría</th><th>CIRION</th>
                                     <th>Ubicación</th><th>Proveedor</th><th>Fecha</th><th>Estado</th><th>Acciones</th>
                                 </tr>
                             </thead>
@@ -188,7 +189,7 @@
                     </div>
                 </section>
 
-                <!-- Cronograma 4 Edificios -->
+                <!-- Cronograma 4 CIRION -->
                 <section class="content-section" id="cronogramaSection">
                     <div class="section-header">
                         <div class="cronograma-nav">
@@ -212,7 +213,7 @@
                 <section class="content-section" id="ganttSection">
                     <div class="section-header">
                         <div class="filters">
-                            <select id="filterGanttEdificio" class="filter-select"><option value="">Todos los edificios</option></select>
+                            <select id="filterGanttEdificio" class="filter-select"><option value="">Todos los CIRION</option></select>
                             <select id="filterGanttCategoria" class="filter-select"><option value="">Todas las categorías</option></select>
                         </div>
                     </div>
@@ -223,7 +224,7 @@
                 <section class="content-section" id="visitasSection">
                     <div class="section-header">
                         <div class="filters">
-                            <select id="filterVisitaEdificio" class="filter-select"><option value="">Todos los edificios</option></select>
+                            <select id="filterVisitaEdificio" class="filter-select"><option value="">Todos los CIRION</option></select>
                             <select id="filterVisitaTipo" class="filter-select"><option value="">Todos los tipos</option></select>
                             <select id="filterVisitaEstado" class="filter-select">
                                 <option value="">Todos los estados</option>
@@ -231,14 +232,15 @@
                                 <option value="En Progreso">En Progreso</option>
                                 <option value="Completado">Completado</option>
                             </select>
+                            <button class="btn-secondary" onclick="app.exportVisitasExcel()"><i class="fas fa-file-excel"></i> Exportar Excel</button>
                         </div>
                     </div>
                     <div class="table-container">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>ID</th><th>Fecha</th><th>Edificio</th><th>Tipo</th>
-                                    <th>Motivo</th><th>Proveedor</th><th>Estado</th><th>Acciones</th>
+                                    <th>ID</th><th>Fecha</th><th>CIRION</th><th>Tipo</th>
+                                    <th>Motivo</th><th>Checklist</th><th>Estado</th><th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="visitasBody"></tbody>
@@ -250,7 +252,7 @@
                 <section class="content-section" id="incidenciasSection">
                     <div class="section-header">
                         <div class="filters">
-                            <select id="filterIncidenciaEdificio" class="filter-select"><option value="">Todos los edificios</option></select>
+                            <select id="filterIncidenciaEdificio" class="filter-select"><option value="">Todos los CIRION</option></select>
                             <select id="filterPrioridad" class="filter-select">
                                 <option value="">Todas las prioridades</option>
                                 <option value="Alta">Alta</option>
@@ -269,7 +271,7 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>ID</th><th>Fecha</th><th>Edificio</th><th>Descripción</th>
+                                    <th>ID</th><th>Fecha</th><th>CIRION</th><th>Descripción</th>
                                     <th>Categoría</th><th>Prioridad</th><th>Proveedor</th><th>Estado</th><th>Acciones</th>
                                 </tr>
                             </thead>
@@ -282,7 +284,7 @@
                 <section class="content-section" id="informesSection">
                     <div class="section-header">
                         <div class="filters">
-                            <select id="filterInformeEdificio" class="filter-select"><option value="">Todos los edificios</option></select>
+                            <select id="filterInformeEdificio" class="filter-select"><option value="">Todos los CIRION</option></select>
                             <input type="date" id="filterInformeFecha" class="filter-input">
                         </div>
                         <button class="btn-primary" id="nuevoInformeBtn"><i class="fas fa-plus"></i> Nuevo Informe</button>
@@ -305,7 +307,7 @@
                 <section class="content-section" id="fotosSection">
                     <div class="section-header">
                         <div class="filters">
-                            <select id="filterFotoEdificio" class="filter-select"><option value="">Todos los edificios</option></select>
+                            <select id="filterFotoEdificio" class="filter-select"><option value="">Todos los CIRION</option></select>
                             <select id="filterFotoCategoria" class="filter-select"><option value="">Todas las categorías</option></select>
                         </div>
                     </div>
@@ -405,7 +407,7 @@
                                     <div class="quote-client">
                                         <h4>CLIENTE:</h4>
                                         <input type="text" id="quoteClient" placeholder="Nombre / Empresa">
-                                        <input type="text" id="quoteClientAddress" placeholder="Edificio / Dirección">
+                                        <input type="text" id="quoteClientAddress" placeholder="CIRION / Dirección">
                                         <input type="text" id="quoteClientPhone" placeholder="Teléfono / Email">
                                     </div>
                                     <table class="quote-items-table">
@@ -446,7 +448,7 @@
                             </div>
                             <div class="report-filters">
                                 <h4>Filtros</h4>
-                                <div class="form-group"><label>Edificio:</label><select id="reportEdificio" class="filter-select"><option value="">Todos</option></select></div>
+                                <div class="form-group"><label>CIRION:</label><select id="reportEdificio" class="filter-select"><option value="">Todos</option></select></div>
                                 <div class="form-group"><label>Fecha Inicio:</label><input type="date" id="reportDateStart" class="filter-input"></div>
                                 <div class="form-group"><label>Fecha Fin:</label><input type="date" id="reportDateEnd" class="filter-input"></div>
                                 <button class="btn-primary btn-block" id="generateReport"><i class="fas fa-sync-alt"></i> Generar</button>
@@ -480,8 +482,8 @@
                             <h3><i class="fas fa-list"></i> Listas del Sistema</h3>
                             <div class="list-manager">
                                 <div class="list-group">
-                                    <label><i class="fas fa-building"></i> Edificios</label>
-                                    <div class="list-input-row"><input type="text" id="newEdificio" placeholder="Nuevo edificio"><button class="btn-primary btn-sm" onclick="app.addListItem('edificios','newEdificio')"><i class="fas fa-plus"></i></button></div>
+                                    <label><i class="fas fa-building"></i> CIRION</label>
+                                    <div class="list-input-row"><input type="text" id="newEdificio" placeholder="Nuevo CIRION"><button class="btn-primary btn-sm" onclick="app.addListItem('edificios','newEdificio')"><i class="fas fa-plus"></i></button></div>
                                     <div id="edificiosList"></div>
                                 </div>
                                 <div class="list-group">
@@ -569,13 +571,101 @@
 
             const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js");
             const { getFirestore, collection, doc, getDocs, getDoc, setDoc, deleteDoc, writeBatch } = await import("https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js");
+            const { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } = await import("https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js");
+            const { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } = await import("https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js");
 
             const firebaseApp = initializeApp(firebaseConfig);
             window._firestore = getFirestore(firebaseApp);
             window._fb = { collection, doc, getDocs, getDoc, setDoc, deleteDoc, writeBatch };
+            window._auth = getAuth(firebaseApp);
+            window._fbAuth = { signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword };
+            window._storage = getStorage(firebaseApp);
+            window._fbStorage = { ref, uploadBytes, getDownloadURL, deleteObject };
             window.dispatchEvent(new Event('firebase-ready'));
         }
         initFirebase();
+    </script>
+
+    <!-- Login Screen -->
+    <div class="login-overlay" id="loginOverlay" style="display:none">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo"><i class="fas fa-building"></i></div>
+                <h1>Facility Management</h1>
+                <p>Inicia sesión para continuar</p>
+            </div>
+            <form id="loginForm" onsubmit="return handleLogin(event)">
+                <div class="login-field">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" id="loginEmail" placeholder="correo@ejemplo.com" required autocomplete="email">
+                </div>
+                <div class="login-field">
+                    <label><i class="fas fa-lock"></i> Contraseña</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+                <div class="login-error" id="loginError" style="display:none"></div>
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <span id="loginBtnText">Iniciar Sesión</span>
+                    <i class="fas fa-spinner fa-spin" id="loginSpinner" style="display:none"></i>
+                </button>
+            </form>
+            <div class="login-footer">
+                <p>Solo usuarios autorizados</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorEl = document.getElementById('loginError');
+            const btnText = document.getElementById('loginBtnText');
+            const spinner = document.getElementById('loginSpinner');
+
+            errorEl.style.display = 'none';
+            btnText.textContent = 'Ingresando...';
+            spinner.style.display = 'inline';
+
+            try {
+                await window._fbAuth.signInWithEmailAndPassword(window._auth, email, password);
+            } catch (err) {
+                const messages = {
+                    'auth/user-not-found': 'Usuario no encontrado',
+                    'auth/wrong-password': 'Contraseña incorrecta',
+                    'auth/invalid-email': 'Email inválido',
+                    'auth/too-many-requests': 'Demasiados intentos. Espera unos minutos',
+                    'auth/invalid-credential': 'Credenciales inválidas'
+                };
+                errorEl.textContent = messages[err.code] || 'Error al iniciar sesión';
+                errorEl.style.display = 'block';
+                btnText.textContent = 'Iniciar Sesión';
+                spinner.style.display = 'none';
+            }
+            return false;
+        }
+
+        async function handleLogout() {
+            try {
+                await window._fbAuth.signOut(window._auth);
+            } catch (err) {
+                console.error('Logout error:', err);
+            }
+        }
+
+        async function handleRegister() {
+            const email = prompt('Email del nuevo usuario:');
+            const password = prompt('Contraseña (mínimo 6 caracteres):');
+            if (email && password) {
+                try {
+                    await window._fbAuth.createUserWithEmailAndPassword(window._auth, email, password);
+                    alert('Usuario creado: ' + email);
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                }
+            }
+        }
     </script>
     <script src="js/data.js"></script>
     <script src="js/database.js"></script>

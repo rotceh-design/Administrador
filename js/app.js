@@ -10,6 +10,26 @@ class MaintenanceApp {
         this.modalOnSave = null;
     }
 
+    // =================== SECURITY HELPERS ===================
+    escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
+    }
+
+    validateForm(formEl) {
+        if (!formEl) return true;
+        const invalid = formEl.querySelectorAll(':invalid');
+        if (invalid.length > 0) {
+            invalid[0].focus();
+            invalid[0].style.borderColor = '#ef4444';
+            setTimeout(() => { invalid[0].style.borderColor = ''; }, 2000);
+            return false;
+        }
+        return true;
+    }
+
     _getWeekStart(date) {
         const d = new Date(date);
         const day = d.getDay();
@@ -21,13 +41,35 @@ class MaintenanceApp {
 
     async init() {
         await db.init();
-        await db.migrateFromLocalStorage();
-        await this.loadData();
-        await quoteManager.init();
-        this.populateFilters();
-        this.bindEvents();
-        this.renderDashboard();
-        this.updateNotificationBadge();
+
+        // Auth state listener
+        const loginOverlay = document.getElementById('loginOverlay');
+        const appContainer = document.querySelector('.app-container');
+
+        window._fbAuth.onAuthStateChanged(window._auth, async (user) => {
+            if (user) {
+                // User is logged in
+                loginOverlay.style.display = 'none';
+                appContainer.style.display = '';
+
+                // Update user info in sidebar
+                const userName = document.getElementById('userName');
+                const userRole = document.getElementById('userRole');
+                if (userName) userName.textContent = user.email.split('@')[0];
+                if (userRole) userRole.textContent = user.email;
+
+                await this.loadData();
+                await quoteManager.init();
+                this.populateFilters();
+                this.bindEvents();
+                this.renderDashboard();
+                this.updateNotificationBadge();
+            } else {
+                // User is not logged in
+                loginOverlay.style.display = 'flex';
+                appContainer.style.display = 'none';
+            }
+        });
     }
 
     async loadData() {
@@ -57,17 +99,17 @@ class MaintenanceApp {
         };
 
         fillSelect('filterCategoria', cats, 'Todas las categorías');
-        fillSelect('filterEdificio', eds, 'Todos los edificios');
-        fillSelect('filterEdificioGlobal', eds, 'Todos los Edificios');
-        fillSelect('filterIncidenciaEdificio', eds, 'Todos los edificios');
-        fillSelect('filterVisitaEdificio', eds, 'Todos los edificios');
-        fillSelect('filterFotoEdificio', eds, 'Todos los edificios');
+        fillSelect('filterEdificio', eds, 'Todos los CIRION');
+        fillSelect('filterEdificioGlobal', eds, 'Todos los CIRION');
+        fillSelect('filterIncidenciaEdificio', eds, 'Todos los CIRION');
+        fillSelect('filterVisitaEdificio', eds, 'Todos los CIRION');
+        fillSelect('filterFotoEdificio', eds, 'Todos los CIRION');
         fillSelect('filterFotoCategoria', cats, 'Todas las categorías');
         fillSelect('filterServicio', cats, 'Todos los servicios');
-        fillSelect('filterGanttEdificio', eds, 'Todos los edificios');
+        fillSelect('filterGanttEdificio', eds, 'Todos los CIRION');
         fillSelect('filterGanttCategoria', cats, 'Todas las categorías');
         fillSelect('filterVisitaTipo', tps, 'Todos los tipos');
-        fillSelect('filterInformeEdificio', eds, 'Todos los edificios');
+        fillSelect('filterInformeEdificio', eds, 'Todos los CIRION');
         fillSelect('reportEdificio', eds, 'Todos');
     }
 
@@ -167,7 +209,7 @@ class MaintenanceApp {
         const ubs = this.data.listas.ubicaciones || [];
         this.showModal('Clasificar Fotografías', `
             <form id="photoForm">
-                <div class="form-group"><label>Edificio *</label><select id="fotoEdificio">${eds.map(e => `<option value="${e}">${e}</option>`).join('')}</select></div>
+                <div class="form-group"><label>CIRION *</label><select id="fotoEdificio">${eds.map(e => `<option value="${e}">${e}</option>`).join('')}</select></div>
                 <div class="form-group"><label>Categoría</label><select id="fotoCategoria">${cats.map(c => `<option value="${c}">${c}</option>`).join('')}</select></div>
                 <div class="form-group"><label>Ubicación</label><select id="fotoUbicacion">${ubs.map(u => `<option value="${u}">${u}</option>`).join('')}</select></div>
                 <div class="form-group"><label>Descripción</label><textarea id="fotoDescripcion" rows="2" placeholder="¿Qué se ve en la foto?"></textarea></div>
@@ -204,7 +246,7 @@ class MaintenanceApp {
         document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.section === section));
         document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
         document.getElementById(`${section}Section`)?.classList.add('active');
-        const t = { dashboard: ['Dashboard', 'Panel de control'], tareas: ['Tareas', 'Gestión de tareas de mantenimiento'], cronograma: ['Cronograma', 'Calendario por edificio - 4 columnas'], gantt: ['Carta Gantt', 'Diagrama de Gantt - Cronograma visual'], visitas: ['Visitas', 'Registro de visitas a edificios'], incidencias: ['Incidencias', 'Registro y seguimiento de problemas'], informes: ['Informes Diarios', 'Reporte diario de actividades'], proveedores: ['Proveedores', 'Directorio de servicios'], fotos: ['Fotografías', 'Galería de imágenes'], emails: ['Correos', 'Generador de correos electrónicos'], cotizaciones: ['Cotizaciones', 'Presupuestos y cotizaciones'], reportes: ['Reportes', 'Estadísticas e informes'], config: ['Configuración', 'Ajustes del sistema'] };
+        const t = { dashboard: ['Dashboard', 'Panel de control'], tareas: ['Tareas', 'Gestión de tareas de mantenimiento'], cronograma: ['Cronograma', 'Calendario por CIRION - 4 columnas'], gantt: ['Carta Gantt', 'Diagrama de Gantt - Cronograma visual'], visitas: ['Visitas', 'Registro de visitas a CIRION'], incidencias: ['Incidencias', 'Registro y seguimiento de problemas'], informes: ['Informes Diarios', 'Reporte diario de actividades'], proveedores: ['Proveedores', 'Directorio de servicios'], fotos: ['Fotografías', 'Galería de imágenes'], emails: ['Correos', 'Generador de correos electrónicos'], cotizaciones: ['Cotizaciones', 'Presupuestos y cotizaciones'], reportes: ['Reportes', 'Estadísticas e informes'], config: ['Configuración', 'Ajustes del sistema'] };
         document.getElementById('pageTitle').textContent = t[section]?.[0] || section;
         document.getElementById('pageSubtitle').textContent = t[section]?.[1] || '';
         this.renderSection(section);
@@ -233,24 +275,24 @@ class MaintenanceApp {
         document.getElementById('proximasVisitas').innerHTML = proxVisitas.length ? proxVisitas.map(v => `
             <div class="task-item">
                 <div class="task-category" style="background:${getEdificioColor(v.edificio, this.data.listas?.edificios)}"></div>
-                <div class="task-info"><h4>${v.motivo}</h4><p>${v.edificio} - ${v.tipo}</p></div>
-                <span class="status-badge status-${v.estado.toLowerCase().replace(' ', '')}">${v.estado}</span>
+                <div class="task-info"><h4>${this.escapeHtml(v.motivo)}</h4><p>${this.escapeHtml(v.edificio)} - ${this.escapeHtml(v.tipo)}</p></div>
+                <span class="status-badge status-${v.estado.toLowerCase().replace(' ', '')}">${this.escapeHtml(v.estado)}</span>
             </div>`).join('') : '<p class="text-center" style="padding:1.5rem;color:var(--text-secondary)">No hay visitas pendientes</p>';
 
         const proxTareas = tareas.filter(t => t.estado !== 'Completado').sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).slice(0, 5);
         document.getElementById('proximasTareas').innerHTML = proxTareas.length ? proxTareas.map(t => `
             <div class="task-item">
                 <div class="task-category" style="background:${CATEGORY_COLORS[t.categoria] || '#6b7280'}"></div>
-                <div class="task-info"><h4>${t.actividad}</h4><p>${t.edificio} - ${t.categoria}</p></div>
-                <span class="status-badge status-${t.estado.toLowerCase().replace(' ', '')}">${t.estado}</span>
+                <div class="task-info"><h4>${this.escapeHtml(t.actividad)}</h4><p>${this.escapeHtml(t.edificio)} - ${this.escapeHtml(t.categoria)}</p></div>
+                <span class="status-badge status-${t.estado.toLowerCase().replace(' ', '')}">${this.escapeHtml(t.estado)}</span>
             </div>`).join('') : '<p class="text-center" style="padding:1.5rem;color:var(--text-secondary)">No hay tareas pendientes</p>';
 
         const incRec = incidencias.filter(i => i.estado !== 'Completado').slice(0, 4);
         document.getElementById('incidenciasRecientes').innerHTML = incRec.length ? incRec.map(i => `
             <div class="task-item">
                 <div class="task-category" style="background:${i.prioridad === 'Alta' ? '#ef4444' : i.prioridad === 'Media' ? '#f59e0b' : '#3b82f6'}"></div>
-                <div class="task-info"><h4>${i.descripcion}</h4><p>${i.edificio} - ${i.categoria}</p></div>
-                <span class="status-badge status-${i.prioridad.toLowerCase()}">${i.prioridad}</span>
+                <div class="task-info"><h4>${this.escapeHtml(i.descripcion)}</h4><p>${this.escapeHtml(i.edificio)} - ${this.escapeHtml(i.categoria)}</p></div>
+                <span class="status-badge status-${i.prioridad.toLowerCase()}">${this.escapeHtml(i.prioridad)}</span>
             </div>`).join('') : '<p class="text-center" style="padding:1.5rem;color:var(--text-secondary)">Sin incidencias</p>';
 
         this.renderChartCategorias();
@@ -281,11 +323,11 @@ class MaintenanceApp {
         if (!tbody) return;
         tbody.innerHTML = tareas.length ? tareas.map(t => `
             <tr>
-                <td><strong>${t.id}</strong></td><td>${t.actividad}</td>
-                <td><span style="color:${CATEGORY_COLORS[t.categoria]};font-weight:500">${t.categoria}</span></td>
-                <td><span class="edificio-tag" style="background:${getEdificioColor(t.edificio, this.data.listas?.edificios)}">${t.edificio}</span></td>
-                <td>${t.ubicacion}</td><td>${t.proveedor}</td><td>${this.formatDate(t.fecha)}</td>
-                <td><span class="status-badge status-${t.estado.toLowerCase().replace(' ', '')}">${t.estado}</span></td>
+                <td><strong>${this.escapeHtml(t.id)}</strong></td><td>${this.escapeHtml(t.actividad)}</td>
+                <td><span style="color:${CATEGORY_COLORS[t.categoria]};font-weight:500">${this.escapeHtml(t.categoria)}</span></td>
+                <td><span class="edificio-tag" style="background:${getEdificioColor(t.edificio, this.data.listas?.edificios)}">${this.escapeHtml(t.edificio)}</span></td>
+                <td>${this.escapeHtml(t.ubicacion)}</td><td>${this.escapeHtml(t.proveedor)}</td><td>${this.formatDate(t.fecha)}</td>
+                <td><span class="status-badge status-${t.estado.toLowerCase().replace(' ', '')}">${this.escapeHtml(t.estado)}</span></td>
                 <td class="actions-cell">
                     <button class="btn-success btn-sm" onclick="app.editTarea('${t.id}')"><i class="fas fa-edit"></i></button>
                     <button class="btn-danger btn-sm" onclick="app.deleteTarea('${t.id}')"><i class="fas fa-trash"></i></button>
@@ -299,7 +341,7 @@ class MaintenanceApp {
         return `<form>
             <div class="form-group"><label>Actividad *</label><input type="text" id="tareaActividad" value="${t?.actividad || ''}" required></div>
             <div class="form-group"><label>Categoría *</label><select id="tareaCategoria">${cats.map(c => `<option value="${c}" ${t?.categoria === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
-            <div class="form-group"><label>Edificio *</label><select id="tareaEdificio">${eds.map(e => `<option value="${e}" ${t?.edificio === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
+            <div class="form-group"><label>CIRION *</label><select id="tareaEdificio">${eds.map(e => `<option value="${e}" ${t?.edificio === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
             <div class="form-group"><label>Ubicación *</label><select id="tareaUbicacion">${ubs.map(u => `<option value="${u}" ${t?.ubicacion === u ? 'selected' : ''}>${u}</option>`).join('')}</select></div>
             <div class="form-group"><label>Proveedor</label><select id="tareaProveedor"><option value="">Sin asignar</option>${provs.map(p => `<option value="${p.empresa}" ${t?.proveedor === p.empresa ? 'selected' : ''}>${p.empresa}</option>`).join('')}</select></div>
             <div class="form-group"><label>Fecha *</label><input type="date" id="tareaFecha" value="${t?.fecha || new Date().toISOString().split('T')[0]}" required></div>
@@ -309,10 +351,12 @@ class MaintenanceApp {
     }
 
     async saveTarea(id = null) {
-        const d = { actividad: this.gv('tareaActividad'), categoria: this.gv('tareaCategoria'), edificio: this.gv('tareaEdificio'), ubicacion: this.gv('tareaUbicacion'), proveedor: this.gv('tareaProveedor'), fecha: this.gv('tareaFecha'), estado: this.gv('tareaEstado'), observaciones: this.gv('tareaObservaciones') };
-        if (id) { const i = this.data.tareas.findIndex(t => t.id === id); if (i !== -1) { d.id = id; this.data.tareas[i] = { ...this.data.tareas[i], ...d }; await db.put('tareas', this.data.tareas[i]); } }
-        else { d.id = 'TAR-' + Date.now(); this.data.tareas.push(d); await db.put('tareas', d); }
-        this.closeModal(); this.renderTareas(); this.showToast(id ? 'Tarea actualizada' : 'Tarea creada', 'success');
+        try {
+            const d = { actividad: this.gv('tareaActividad'), categoria: this.gv('tareaCategoria'), edificio: this.gv('tareaEdificio'), ubicacion: this.gv('tareaUbicacion'), proveedor: this.gv('tareaProveedor'), fecha: this.gv('tareaFecha'), estado: this.gv('tareaEstado'), observaciones: this.gv('tareaObservaciones') };
+            if (id) { const i = this.data.tareas.findIndex(t => t.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); this.data.tareas[i] = { ...this.data.tareas[i], ...d }; await db.put('tareas', this.data.tareas[i]); } }
+            else { d.id = 'TAR-' + Date.now(); d.createdAt = new Date().toISOString(); this.data.tareas.push(d); await db.put('tareas', d); }
+            this.closeModal(); this.renderTareas(); this.showToast(id ? 'Tarea actualizada' : 'Tarea creada', 'success');
+        } catch (err) { console.error('Error guardando tarea:', err); this.showToast('Error al guardar', 'error'); }
     }
 
     editTarea(id) { const t = this.data.tareas.find(x => x.id === id); if (t) this.showModal('Editar Tarea', this.getTareaForm(t), () => this.saveTarea(t.id)); }
@@ -330,42 +374,139 @@ class MaintenanceApp {
 
         const tbody = document.getElementById('visitasBody');
         if (!tbody) return;
-        tbody.innerHTML = visitas.length ? visitas.map(v => `
+        tbody.innerHTML = visitas.length ? visitas.map(v => {
+            const checklist = (v.checklist || []).slice(0, 3);
+            const moreCount = (v.checklist || []).length - 3;
+            const checklistBadges = checklist.map(c => {
+                const cat = CHECKLIST_CATEGORIES[c];
+                return cat ? `<span style="background:${cat.color}18;color:${cat.color};padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;border:1px solid ${cat.color}30">${c}</span>` : '';
+            }).join(' ') + (moreCount > 0 ? `<span style="background:#f1f5f9;color:#64748b;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">+${moreCount}</span>` : '');
+
+            return `
             <tr>
                 <td><strong>${v.id}</strong></td><td>${this.formatDate(v.fecha)}</td>
                 <td><span class="edificio-tag" style="background:${getEdificioColor(v.edificio, this.data.listas?.edificios)}">${v.edificio}</span></td>
-                <td>${v.tipo}</td><td>${v.motivo}</td><td>${v.proveedor}</td>
+                <td>${v.tipo}</td><td>${v.motivo}</td>
+                <td>${checklistBadges || '<span style="color:#94a3b8;font-size:11px">Sin checklist</span>'}</td>
                 <td><span class="status-badge status-${v.estado.toLowerCase().replace(' ', '')}">${v.estado}</span></td>
                 <td class="actions-cell">
-                    <button class="btn-success btn-sm" onclick="app.editVisita('${v.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn-danger btn-sm" onclick="app.deleteVisita('${v.id}')"><i class="fas fa-trash"></i></button>
+                    <button class="btn-success btn-sm" onclick="app.editVisita('${v.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button class="btn-primary btn-sm" onclick="app.exportVisitaChecklist('${v.id}')" title="Exportar Checklist Excel"><i class="fas fa-file-excel"></i></button>
+                    <button class="btn-danger btn-sm" onclick="app.deleteVisita('${v.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
                 </td>
-            </tr>`).join('') : '<tr><td colspan="8" class="text-center">No se encontraron visitas</td></tr>';
+            </tr>`;
+        }).join('') : '<tr><td colspan="8" class="text-center">No se encontraron visitas</td></tr>';
         document.getElementById('navVisitasBadge').textContent = this.data.visitas?.filter(v => v.estado !== 'Completado').length || 0;
     }
 
     getVisitaForm(v = null) {
         const eds = this.data.listas.edificios || [], tps = this.data.listas.tiposVisita || [], provs = this.data.proveedores || [], sts = ['Pendiente', 'En Progreso', 'Completado'];
+        const selectedChecklist = v?.checklist || [];
+        const checklistHTML = Object.entries(CHECKLIST_CATEGORIES).map(([cat, data]) => {
+            const checked = selectedChecklist.includes(cat) ? 'checked' : '';
+            return `<label class="checklist-option" style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;cursor:pointer;background:${checked ? data.color + '18' : '#f8fafc'};border:1px solid ${checked ? data.color + '50' : '#e2e8f0'};transition:all 0.15s">
+                <input type="checkbox" class="visita-checklist" value="${cat}" ${checked} style="accent-color:${data.color};width:16px;height:16px">
+                <span style="color:${data.color};font-size:14px;width:20px;text-align:center"><i class="fas ${data.icon}"></i></span>
+                <span style="font-size:13px;font-weight:500;color:#334155">${cat}</span>
+            </label>`;
+        }).join('');
+
         return `<form>
-            <div class="form-group"><label>Edificio *</label><select id="visitaEdificio">${eds.map(e => `<option value="${e}" ${v?.edificio === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
-            <div class="form-group"><label>Tipo de Visita *</label><select id="visitaTipo">${tps.map(t => `<option value="${t}" ${v?.tipo === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
-            <div class="form-group"><label>Fecha *</label><input type="date" id="visitaFecha" value="${v?.fecha || new Date().toISOString().split('T')[0]}"></div>
-            <div class="form-group"><label>Motivo *</label><input type="text" id="visitaMotivo" value="${v?.motivo || ''}" placeholder="Motivo de la visita"></div>
-            <div class="form-group"><label>Proveedor</label><select id="visitaProveedor"><option value="">Sin asignar</option>${provs.map(p => `<option value="${p.empresa}" ${v?.proveedor === p.empresa ? 'selected' : ''}>${p.empresa}</option>`).join('')}</select></div>
+            <div class="form-group"><label>CIRION *</label><select id="visitaEdificio">${eds.map(e => `<option value="${e}" ${v?.edificio === e ? 'selected' : ''}>${this.escapeHtml(e)}</option>`).join('')}</select></div>
+            <div class="form-group"><label>Tipo de Visita *</label><select id="visitaTipo">${tps.map(t => `<option value="${t}" ${v?.tipo === t ? 'selected' : ''}>${this.escapeHtml(t)}</option>`).join('')}</select></div>
+            <div class="form-group"><label>Fecha *</label><input type="date" id="visitaFecha" value="${v?.fecha || new Date().toISOString().split('T')[0]}" required></div>
+            <div class="form-group"><label>Motivo *</label><input type="text" id="visitaMotivo" value="${this.escapeHtml(v?.motivo || '')}" placeholder="Motivo de la visita" required></div>
+            <div class="form-group"><label>Proveedor</label><select id="visitaProveedor"><option value="">Sin asignar</option>${provs.map(p => `<option value="${p.empresa}" ${v?.proveedor === p.empresa ? 'selected' : ''}>${this.escapeHtml(p.empresa)}</option>`).join('')}</select></div>
             <div class="form-group"><label>Estado</label><select id="visitaEstado">${sts.map(s => `<option value="${s}" ${v?.estado === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><i class="fas fa-clipboard-check" style="color:#1e40af"></i> <strong>Checklist de Inspección</strong></label>
+                <p style="font-size:11px;color:#64748b;margin-bottom:8px">Selecciona las áreas a inspeccionar en esta visita:</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:220px;overflow-y:auto;padding:4px">${checklistHTML}</div>
+            </div>
             <div class="form-group"><label>Observaciones</label><textarea id="visitaObservaciones" rows="2">${v?.observaciones || ''}</textarea></div>
         </form>`;
     }
 
     async saveVisita(id = null) {
-        const d = { fecha: this.gv('visitaFecha'), edificio: this.gv('visitaEdificio'), tipo: this.gv('visitaTipo'), motivo: this.gv('visitaMotivo'), proveedor: this.gv('visitaProveedor'), estado: this.gv('visitaEstado'), observaciones: this.gv('visitaObservaciones'), responsable: '' };
-        if (id) { const i = this.data.visitas.findIndex(v => v.id === id); if (i !== -1) { d.id = id; this.data.visitas[i] = { ...this.data.visitas[i], ...d }; await db.put('visitas', this.data.visitas[i]); } }
-        else { d.id = 'VIS-' + Date.now(); this.data.visitas.push(d); await db.put('visitas', d); }
-        this.closeModal(); this.renderVisitas(); this.showToast(id ? 'Visita actualizada' : 'Visita creada', 'success');
+        try {
+            const checklist = [...document.querySelectorAll('.visita-checklist:checked')].map(cb => cb.value);
+            const d = { fecha: this.gv('visitaFecha'), edificio: this.gv('visitaEdificio'), tipo: this.gv('visitaTipo'), motivo: this.gv('visitaMotivo'), proveedor: this.gv('visitaProveedor'), estado: this.gv('visitaEstado'), observaciones: this.gv('visitaObservaciones'), responsable: '', checklist };
+            if (id) { const i = this.data.visitas.findIndex(v => v.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); this.data.visitas[i] = { ...this.data.visitas[i], ...d }; await db.put('visitas', this.data.visitas[i]); } }
+            else { d.id = 'VIS-' + Date.now(); d.createdAt = new Date().toISOString(); this.data.visitas.push(d); await db.put('visitas', d); }
+            this.closeModal(); this.renderVisitas(); this.showToast(id ? 'Visita actualizada' : 'Visita creada', 'success');
+        } catch (err) { console.error('Error guardando visita:', err); this.showToast('Error al guardar', 'error'); }
     }
 
     editVisita(id) { const v = this.data.visitas.find(x => x.id === id); if (v) this.showModal('Editar Visita', this.getVisitaForm(v), () => this.saveVisita(v.id)); }
     async deleteVisita(id) { if (!confirm('¿Eliminar visita?')) return; this.data.visitas = this.data.visitas.filter(v => v.id !== id); await db.delete('visitas', id); this.renderVisitas(); this.showToast('Visita eliminada', 'success'); }
+
+    async exportVisitaChecklist(id) {
+        const visita = this.data.visitas.find(v => v.id === id);
+        if (!visita) return;
+        if (!visita.checklist || !visita.checklist.length) { this.showToast('Esta visita no tiene checklist asignado', 'warning'); return; }
+
+        try {
+            this.showToast('Generando Excel...', 'info');
+            const empresa = document.getElementById('nombreEmpresa')?.value || 'Facility Management';
+            const edificios = this.data.listas.edificios || [];
+
+            const res = await fetch('/api/export-visita-checklist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ visita, empresa, edificios })
+            });
+
+            if (!res.ok) throw new Error('Error generating file');
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Checklist_${visita.edificio}_${visita.fecha}_${visita.id}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+            this.showToast('Checklist exportado', 'success');
+        } catch (err) {
+            this.showToast('Error al exportar', 'error');
+        }
+    }
+
+    async exportVisitasExcel() {
+        const edi = document.getElementById('filterVisitaEdificio')?.value || '';
+        const tipo = document.getElementById('filterVisitaTipo')?.value || '';
+        const est = document.getElementById('filterVisitaEstado')?.value || '';
+        let visitas = [...(this.data.visitas || [])];
+        if (edi) visitas = visitas.filter(v => v.edificio === edi);
+        if (tipo) visitas = visitas.filter(v => v.tipo === tipo);
+        if (est) visitas = visitas.filter(v => v.estado === est);
+
+        if (!visitas.length) { this.showToast('No hay visitas para exportar', 'warning'); return; }
+
+        try {
+            this.showToast('Generando Excel...', 'info');
+            const empresa = document.getElementById('nombreEmpresa')?.value || 'Facility Management';
+            const edificios = this.data.listas.edificios || [];
+
+            const res = await fetch('/api/export-visitas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ visitas, empresa, edificios })
+            });
+
+            if (!res.ok) throw new Error('Error generating file');
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Programa_Visitas_${new Date().toISOString().split('T')[0]}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+            this.showToast('Programa de visitas exportado', 'success');
+        } catch (err) {
+            this.showToast('Error al exportar', 'error');
+        }
+    }
 
     // =================== CRONOGRAMA ===================
     renderCronograma() {
@@ -373,7 +514,7 @@ class MaintenanceApp {
         const eds = this.data.listas.edificios || [];
         const grid = document.getElementById('cronogramaGrid');
         if (!grid) return;
-        if (eds.length === 0) { grid.innerHTML = '<p class="crono-empty">Agrega edificios en Configuración para ver el cronograma</p>'; return; }
+        if (eds.length === 0) { grid.innerHTML = '<p class="crono-empty">Agrega CIRION en Configuración para ver el cronograma</p>'; return; }
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -546,7 +687,7 @@ class MaintenanceApp {
         const meses = this.data.listas.meses || INITIAL_DATA.meses;
         const eds = this.data.listas.edificios || [];
         const title = this.cronogramaView === 'monthly' ? `Cronograma Mensual - ${meses[this.currentMonth]} ${this.currentYear}` : `Cronograma Semanal - ${document.getElementById('currentPeriod').textContent}`;
-        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const today = new Date();
 
         let dateStart, dateEnd;
         if (this.cronogramaView === 'monthly') {
@@ -558,87 +699,102 @@ class MaintenanceApp {
             dateEnd.setDate(dateEnd.getDate() + 6);
         }
 
-        const allItems = eds.flatMap(ed => this._getItemsForRange(dateStart, dateEnd, ed));
-        const today = new Date();
+        const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        let sections = '';
 
-        let bodyContent = '';
-        if (this.cronogramaView === 'monthly') {
-            const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-            const totalDays = dateEnd.getDate();
-            const startPad = (firstDay.getDay() + 6) % 7;
+        eds.forEach(ed => {
+            const edColor = getEdificioColor(ed, eds);
+            const items = this._getItemsForRange(dateStart, dateEnd, ed);
+            items.sort((a, b) => a.date - b.date);
 
-            bodyContent += `<table class="cal-table"><thead><tr>${['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => `<th>${d}</th>`).join('')}</tr></thead><tbody><tr>`;
-            for (let i = 0; i < startPad; i++) bodyContent += '<td class="empty-cell"></td>';
-
-            for (let day = 1; day <= totalDays; day++) {
-                const cellDate = new Date(this.currentYear, this.currentMonth, day);
-                const isToday = cellDate.toDateString() === today.toDateString();
-                const dayItems = allItems.filter(i => i.date.getDate() === day);
-                bodyContent += `<td class="${isToday ? 'today-cell' : ''}"><div class="cell-day ${dayItems.length ? 'has-items' : ''}">${day}</div>`;
-                dayItems.forEach(item => {
-                    const color = item.type === 'tarea' ? '#3b82f6' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
-                    const icon = item.type === 'tarea' ? '■' : item.type === 'visita' ? '●' : '▲';
-                    const done = item.estado === 'Completado' ? ' ✓' : '';
-                    bodyContent += `<div class="cell-event" style="border-left-color:${color}"><span class="ev-icon" style="color:${color}">${icon}</span> ${item.label}${done}</div>`;
-                });
-                bodyContent += '</td>';
-                if ((startPad + day) % 7 === 0 && day < totalDays) bodyContent += '</tr><tr>';
-            }
-            const endPad = (7 - ((startPad + totalDays) % 7)) % 7;
-            for (let i = 0; i < endPad; i++) bodyContent += '<td class="empty-cell"></td>';
-            bodyContent += '</tr></tbody></table>';
-        } else {
-            const dayNamesFull = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-            bodyContent += `<table class="cal-table weekly-table"><thead><tr><th style="width:120px">Edificio</th>${dayNamesFull.map((d, i) => {
-                const dd = new Date(this.currentWeekStart); dd.setDate(dd.getDate() + i);
-                const isT = dd.toDateString() === today.toDateString();
-                return `<th class="${isT ? 'today-header' : ''}">${d} ${dd.getDate()}</th>`;
-            }).join('')}</tr></thead><tbody>`;
-            eds.forEach(ed => {
-                const edColor = getEdificioColor(ed, eds);
-                bodyContent += `<tr><td class="ed-label" style="border-left:4px solid ${edColor};font-weight:700">${ed}</td>`;
-                for (let d = 0; d < 7; d++) {
-                    const dd = new Date(this.currentWeekStart); dd.setDate(dd.getDate() + d);
-                    const cellItems = this._getItemsForRange(dd, dd, ed);
-                    const isT = dd.toDateString() === today.toDateString();
-                    bodyContent += `<td class="${isT ? 'today-cell' : ''}">`;
-                    cellItems.forEach(item => {
-                        const color = item.type === 'tarea' ? '#3b82f6' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
-                        const icon = item.type === 'tarea' ? '■' : item.type === 'visita' ? '●' : '▲';
-                        const done = item.estado === 'Completado' ? ' ✓' : '';
-                        bodyContent += `<div class="cell-event" style="border-left-color:${color}"><span class="ev-icon" style="color:${color}">${icon}</span> ${item.label}${done}</div>`;
+            let itemsHTML = '';
+            if (items.length === 0) {
+                itemsHTML = '<p class="no-items">Sin actividades programadas</p>';
+            } else {
+                if (this.cronogramaView === 'monthly') {
+                    const byDay = {};
+                    items.forEach(item => {
+                        const key = item.date.getDate();
+                        if (!byDay[key]) byDay[key] = [];
+                        byDay[key].push(item);
                     });
-                    bodyContent += '</td>';
+                    Object.entries(byDay).forEach(([day, dayItems]) => {
+                        const d = new Date(dateStart.getFullYear(), dateStart.getMonth(), parseInt(day));
+                        itemsHTML += `<div class="day-group"><div class="day-label">${dayNames[d.getDay()]} ${day} de ${meses[d.getMonth()]}</div>`;
+                        dayItems.forEach(item => {
+                            itemsHTML += this._pdfEventRow(item);
+                        });
+                        itemsHTML += '</div>';
+                    });
+                } else {
+                    const byDay = {};
+                    items.forEach(item => {
+                        const key = item.date.toISOString().split('T')[0];
+                        if (!byDay[key]) byDay[key] = [];
+                        byDay[key].push(item);
+                    });
+                    Object.entries(byDay).forEach(([dateStr, dayItems]) => {
+                        const d = new Date(dateStr + 'T00:00:00');
+                        itemsHTML += `<div class="day-group"><div class="day-label">${dayNames[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]}</div>`;
+                        dayItems.forEach(item => {
+                            itemsHTML += this._pdfEventRow(item);
+                        });
+                        itemsHTML += '</div>';
+                    });
                 }
-                bodyContent += '</tr>';
-            });
-            bodyContent += '</tbody></table>';
-        }
+            }
+
+            const tareasCount = items.filter(i => i.type === 'tarea').length;
+            const visitasCount = items.filter(i => i.type === 'visita').length;
+            const incCount = items.filter(i => i.type === 'incidencia').length;
+
+            sections += `
+                <div class="building-section">
+                    <div class="building-header" style="border-left:5px solid ${edColor}">
+                        <div class="building-name">${ed}</div>
+                        <div class="building-stats">
+                            ${tareasCount ? `<span class="stat-item stat-tarea">${tareasCount} Tareas</span>` : ''}
+                            ${visitasCount ? `<span class="stat-item stat-visita">${visitasCount} Visitas</span>` : ''}
+                            ${incCount ? `<span class="stat-item stat-incidencia">${incCount} Incidencias</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="building-body">${itemsHTML}</div>
+                </div>`;
+        });
 
         const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
             *{margin:0;padding:0;box-sizing:border-box}
-            body{font-family:Arial,Helvetica,sans-serif;padding:25px;color:#1e293b}
-            .header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1e40af;padding-bottom:10px;margin-bottom:16px}
-            h1{font-size:20px;color:#1e40af} .date{font-size:11px;color:#64748b}
-            .cal-table{width:100%;border-collapse:collapse;table-layout:fixed}
-            .cal-table th{background:#1e40af;color:white;padding:8px 4px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px}
-            .cal-table td{border:1px solid #e2e8f0;vertical-align:top;padding:3px;height:70px;width:14.28%}
-            .empty-cell{background:#f8fafc}
-            .today-cell{background:#eff6ff}
-            .today-header{background:#1e3a8a}
-            .cell-day{font-size:12px;font-weight:700;color:#475569;margin-bottom:3px}
-            .cell-day.has-items{color:#1e293b}
-            .cell-event{font-size:8.5px;padding:2px 5px;margin:1px 0;border-left:3px solid #ccc;background:#f8fafc;border-radius:0 3px 3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
-            .ev-icon{font-size:7px;margin-right:2px}
-            .weekly-table td{height:60px}
-            .ed-label{font-size:10px;padding:4px 8px}
-            .legend{display:flex;gap:14px;margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0}
-            .legend-item{display:flex;align-items:center;gap:4px;font-size:9px;color:#64748b}
-            .legend-dot{width:8px;height:8px;border-radius:50%}
-            @media print{body{padding:15px}.cal-table td{height:65px}}
+            body{font-family:Arial,Helvetica,sans-serif;padding:30px;color:#1e293b;font-size:12px;line-height:1.5}
+            .header{border-bottom:3px solid #1e40af;padding-bottom:12px;margin-bottom:20px}
+            .header h1{font-size:22px;color:#1e40af;margin-bottom:4px}
+            .header .date{font-size:12px;color:#64748b}
+            .building-section{margin-bottom:20px;page-break-inside:avoid}
+            .building-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f8fafc;border-radius:6px;margin-bottom:8px}
+            .building-name{font-size:15px;font-weight:800;color:#1e293b}
+            .building-stats{display:flex;gap:10px}
+            .stat-item{font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;color:white}
+            .stat-tarea{background:#3b82f6}
+            .stat-visita{background:#8b5cf6}
+            .stat-incidencia{background:#ef4444}
+            .building-body{padding-left:10px}
+            .day-group{margin-bottom:8px}
+            .day-label{font-size:11px;font-weight:700;color:#475569;padding:4px 0;border-bottom:1px solid #e2e8f0;margin-bottom:4px}
+            .event-row{display:flex;align-items:center;gap:8px;padding:5px 8px;margin:3px 0;background:#f8fafc;border-radius:4px;border-left:3px solid #ccc}
+            .event-icon{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:white;font-size:9px;flex-shrink:0}
+            .event-text{font-size:11.5px;font-weight:500;flex:1}
+            .event-type{font-size:9px;color:#64748b;font-weight:600;text-transform:uppercase}
+            .event-done{opacity:0.45;text-decoration:line-through}
+            .no-items{color:#94a3b8;font-style:italic;padding:6px 0;font-size:11px}
+            .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:20px;padding-top:12px;border-top:2px solid #e2e8f0}
+            .legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#64748b;font-weight:500}
+            .legend-dot{width:10px;height:10px;border-radius:50%}
+            @media print{body{padding:20px;font-size:11px}.building-section{page-break-inside:avoid}}
         </style></head><body>
-            <div class="header"><div><h1>${title}</h1><div class="date">Facility Management · ${today.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div></div></div>
-            ${bodyContent}
+            <div class="header">
+                <h1>${title}</h1>
+                <div class="date">Facility Management · Generado el ${today.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+            </div>
+            ${sections}
             <div class="legend">
                 <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>Tarea</div>
                 <div class="legend-item"><span class="legend-dot" style="background:#8b5cf6"></span>Visita</div>
@@ -652,12 +808,25 @@ class MaintenanceApp {
         setTimeout(() => w.print(), 500);
     }
 
+    _pdfEventRow(item) {
+        const color = item.type === 'tarea' ? '#3b82f6' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
+        const icon = item.type === 'tarea' ? 'fa-check-square' : item.type === 'visita' ? 'fa-calendar-day' : 'fa-exclamation-triangle';
+        const typeLabel = item.type === 'tarea' ? 'Tarea' : item.type === 'visita' ? 'Visita' : 'Incidencia';
+        const done = item.estado === 'Completado' ? ' event-done' : '';
+        return `<div class="event-row${done}" style="border-left-color:${color}">
+            <span class="event-icon" style="background:${color}"><i class="fas ${icon}" style="font-size:8px"></i></span>
+            <span class="event-text">${item.label}</span>
+            <span class="event-type">${typeLabel}</span>
+        </div>`;
+    }
+
     // =================== CARTA GANTT ===================
     renderGantt() {
         const container = document.getElementById('ganttContainer');
         if (!container) return;
         const gfEd = document.getElementById('filterGanttEdificio')?.value || '';
         const gfCat = document.getElementById('filterGanttCategoria')?.value || '';
+        const eds = this.data.listas.edificios || [];
 
         let tareas = [...(this.data.tareas || [])];
         let visitas = [...(this.data.visitas || [])];
@@ -693,11 +862,13 @@ class MaintenanceApp {
                 ${allItems.map(item => {
                     const edColor = getEdificioColor(item.edificio, eds);
                     const statusDot = item.estado === 'Completado' ? '#10b981' : item.estado === 'En Progreso' ? '#f59e0b' : '#94a3b8';
+                    const label = this.escapeHtml(item.label.substring(0, 28) + (item.label.length > 28 ? '...' : ''));
+                    const edificio = this.escapeHtml(item.edificio);
                     return `<div class="gantt-sidebar-row" style="height:${rowHeight}px">
                         <div class="gantt-sidebar-status" style="background:${statusDot}"></div>
                         <div class="gantt-sidebar-info">
-                            <span class="gantt-sidebar-label">${item.label.substring(0, 28)}${item.label.length > 28 ? '...' : ''}</span>
-                            <span class="gantt-sidebar-meta"><span class="edificio-dot" style="background:${edColor}"></span>${item.edificio} · ${item.type}</span>
+                            <span class="gantt-sidebar-label">${label}</span>
+                            <span class="gantt-sidebar-meta"><span class="edificio-dot" style="background:${edColor}"></span>${edificio} · ${item.type}</span>
                         </div>
                     </div>`;
                 }).join('')}
@@ -723,7 +894,7 @@ class MaintenanceApp {
                         const color = item.type === 'Tarea' ? CATEGORY_COLORS[item.categoria] || '#6b7280' : '#8b5cf6';
                         const bgColor = color + '20';
                         const isCompleted = item.estado === 'Completado';
-                        const barWidth = item.type === 'Visita' ? 2 : Math.max(4, Math.min(8, 1 + Math.floor(Math.random() * 3)));
+                        const barWidth = item.type === 'Visita' ? 2 : Math.min(8, Math.max(4, Math.ceil((allItems.length > 10 ? 1 : 1.5))));
                         return `<div class="gantt-row" style="height:${rowHeight}px">
                             <div class="gantt-track" style="width:${totalDays * dayWidth}px">
                                 ${Array.from({ length: totalDays }, (_, i) => {
@@ -766,13 +937,13 @@ class MaintenanceApp {
         if (!tbody) return;
         tbody.innerHTML = inc.length ? inc.map(i => `
             <tr>
-                <td><strong>${i.id}</strong></td><td>${this.formatDate(i.fecha)}</td>
-                <td><span class="edificio-tag" style="background:${getEdificioColor(i.edificio, this.data.listas?.edificios)}">${i.edificio}</span></td>
-                <td>${i.descripcion}</td>
-                <td><span style="color:${CATEGORY_COLORS[i.categoria]};font-weight:500">${i.categoria}</span></td>
-                <td><span class="status-badge status-${i.prioridad.toLowerCase()}">${i.prioridad}</span></td>
-                <td>${i.proveedor}</td>
-                <td><span class="status-badge status-${i.estado.toLowerCase().replace(' ', '')}">${i.estado}</span></td>
+                <td><strong>${this.escapeHtml(i.id)}</strong></td><td>${this.formatDate(i.fecha)}</td>
+                <td><span class="edificio-tag" style="background:${getEdificioColor(i.edificio, this.data.listas?.edificios)}">${this.escapeHtml(i.edificio)}</span></td>
+                <td>${this.escapeHtml(i.descripcion)}</td>
+                <td><span style="color:${CATEGORY_COLORS[i.categoria]};font-weight:500">${this.escapeHtml(i.categoria)}</span></td>
+                <td><span class="status-badge status-${i.prioridad.toLowerCase()}">${this.escapeHtml(i.prioridad)}</span></td>
+                <td>${this.escapeHtml(i.proveedor)}</td>
+                <td><span class="status-badge status-${i.estado.toLowerCase().replace(' ', '')}">${this.escapeHtml(i.estado)}</span></td>
                 <td class="actions-cell">
                     <button class="btn-success btn-sm" onclick="app.editIncidencia('${i.id}')"><i class="fas fa-edit"></i></button>
                     <button class="btn-danger btn-sm" onclick="app.deleteIncidencia('${i.id}')"><i class="fas fa-trash"></i></button>
@@ -784,8 +955,8 @@ class MaintenanceApp {
     getIncidenciaForm(i = null) {
         const cats = this.data.listas.categorias || [], eds = this.data.listas.edificios || [], ubs = this.data.listas.ubicaciones || [], prs = this.data.listas.prioridades || [], provs = this.data.proveedores || [];
         return `<form>
-            <div class="form-group"><label>Edificio *</label><select id="incEdificio">${eds.map(e => `<option value="${e}" ${i?.edificio === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
-            <div class="form-group"><label>Descripción *</label><input type="text" id="incDescripcion" value="${i?.descripcion || ''}"></div>
+            <div class="form-group"><label>CIRION *</label><select id="incEdificio">${eds.map(e => `<option value="${e}" ${i?.edificio === e ? 'selected' : ''}>${this.escapeHtml(e)}</option>`).join('')}</select></div>
+            <div class="form-group"><label>Descripción *</label><input type="text" id="incDescripcion" value="${this.escapeHtml(i?.descripcion || '')}" required></div>
             <div class="form-group"><label>Categoría *</label><select id="incCategoria">${cats.map(c => `<option value="${c}" ${i?.categoria === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
             <div class="form-group"><label>Ubicación</label><select id="incUbicacion">${ubs.map(u => `<option value="${u}" ${i?.ubicacion === u ? 'selected' : ''}>${u}</option>`).join('')}</select></div>
             <div class="form-group"><label>Prioridad *</label><select id="incPrioridad">${prs.map(p => `<option value="${p}" ${i?.prioridad === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
@@ -796,29 +967,33 @@ class MaintenanceApp {
     }
 
     async saveIncidencia(id = null) {
-        const d = { fecha: new Date().toISOString().split('T')[0], edificio: this.gv('incEdificio'), descripcion: this.gv('incDescripcion'), categoria: this.gv('incCategoria'), ubicacion: this.gv('incUbicacion'), prioridad: this.gv('incPrioridad'), proveedor: this.gv('incProveedor'), estado: this.gv('incEstado'), observaciones: this.gv('incObservaciones'), fotos: [] };
-        if (id) { const i = this.data.incidencias.findIndex(x => x.id === id); if (i !== -1) { d.id = id; this.data.incidencias[i] = { ...this.data.incidencias[i], ...d }; await db.put('incidencias', this.data.incidencias[i]); } }
-        else {
-            d.id = 'INC-' + Date.now();
-            this.data.incidencias.push(d);
-            await db.put('incidencias', d);
+        try {
+            const d = { fecha: new Date().toISOString().split('T')[0], edificio: this.gv('incEdificio'), descripcion: this.gv('incDescripcion'), categoria: this.gv('incCategoria'), ubicacion: this.gv('incUbicacion'), prioridad: this.gv('incPrioridad'), proveedor: this.gv('incProveedor'), estado: this.gv('incEstado'), observaciones: this.gv('incObservaciones'), fotos: [] };
+            if (id) { const i = this.data.incidencias.findIndex(x => x.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); this.data.incidencias[i] = { ...this.data.incidencias[i], ...d }; await db.put('incidencias', this.data.incidencias[i]); } }
+            else {
+                d.id = 'INC-' + Date.now();
+                d.createdAt = new Date().toISOString();
+                this.data.incidencias.push(d);
+                await db.put('incidencias', d);
 
-            const tarea = {
-                id: 'TAR-' + Date.now(),
-                actividad: `Resolver incidencia: ${d.descripcion}`,
-                categoria: d.categoria,
-                edificio: d.edificio,
-                ubicacion: d.ubicacion,
-                proveedor: d.proveedor,
-                fecha: d.fecha,
-                estado: 'Pendiente',
-                observaciones: `Generada desde incidencia ${d.id}. Prioridad: ${d.prioridad}. ${d.observaciones || ''}`
-            };
-            this.data.tareas.push(tarea);
-            await db.put('tareas', tarea);
-            this.showToast(`Tarea automática creada: ${tarea.actividad}`, 'info');
-        }
-        this.closeModal(); this.renderIncidencias(); this.renderDashboard(); this.updateNotificationBadge(); this.showToast(id ? 'Incidencia actualizada' : 'Incidencia creada + tarea generada', 'success');
+                const tarea = {
+                    id: 'TAR-' + Date.now(),
+                    actividad: `Resolver incidencia: ${d.descripcion}`,
+                    categoria: d.categoria,
+                    edificio: d.edificio,
+                    ubicacion: d.ubicacion,
+                    proveedor: d.proveedor,
+                    fecha: d.fecha,
+                    estado: 'Pendiente',
+                    observaciones: `Generada desde incidencia ${d.id}. Prioridad: ${d.prioridad}. ${d.observaciones || ''}`,
+                    createdAt: new Date().toISOString()
+                };
+                this.data.tareas.push(tarea);
+                await db.put('tareas', tarea);
+                this.showToast(`Tarea automática creada: ${tarea.actividad}`, 'info');
+            }
+            this.closeModal(); this.renderIncidencias(); this.renderDashboard(); this.updateNotificationBadge(); this.showToast(id ? 'Incidencia actualizada' : 'Incidencia creada + tarea generada', 'success');
+        } catch (err) { console.error('Error guardando incidencia:', err); this.showToast('Error al guardar', 'error'); }
     }
 
     editIncidencia(id) { const i = this.data.incidencias.find(x => x.id === id); if (i) this.showModal('Editar Incidencia', this.getIncidenciaForm(i), () => this.saveIncidencia(i.id)); }
@@ -893,7 +1068,7 @@ class MaintenanceApp {
         const pendientesHTML = pendingTareas.length ? `<p class="informe-pendientes-auto">${pendingTareas.map(t => `${t.actividad} (${t.edificio} - ${this.formatDate(t.fecha)})`).join(' · ')}</p>` : '';
 
         return `<form>
-            <div class="form-group"><label>Edificio *</label><select id="informeEdificio" onchange="app._updateInformeSummary()">${eds.map(e => `<option value="${e}" ${inf?.edificio === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
+            <div class="form-group"><label>CIRION *</label><select id="informeEdificio" onchange="app._updateInformeSummary()">${eds.map(e => `<option value="${e}" ${inf?.edificio === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
             <div class="form-group"><label>Fecha *</label><input type="date" id="informeFecha" value="${fecha}" onchange="app._updateInformeSummary()"></div>
             ${summaryHTML}
             <div class="form-group"><label>Título del Informe *</label><input type="text" id="informeTitulo" value="${inf?.titulo || ''}" placeholder="Ej: Informe diario de mantención"></div>
@@ -923,19 +1098,21 @@ class MaintenanceApp {
     }
 
     async saveInforme(id = null) {
-        const getTareas = () => Array.from(document.querySelectorAll('.inf-tarea-check')).map(el => ({ texto: el.dataset.text, completada: el.checked }));
-        const getVisitas = () => Array.from(document.querySelectorAll('.inf-visita-check')).map(el => ({ texto: el.dataset.text, completada: el.checked }));
-        const getIncidencias = () => Array.from(document.querySelectorAll('.inf-incidencia-check')).map(el => ({ texto: el.dataset.text, completada: el.checked }));
+        try {
+            const getTareas = () => Array.from(document.querySelectorAll('.inf-tarea-check')).map(el => ({ texto: el.dataset.text, completada: el.checked }));
+            const getVisitas = () => Array.from(document.querySelectorAll('.inf-visita-check')).map(el => ({ texto: el.dataset.text, completada: el.checked }));
+            const getIncidencias = () => Array.from(document.querySelectorAll('.inf-incidencia-check')).map(el => ({ texto: el.dataset.text, completada: el.checked }));
 
-        const d = {
-            edificio: this.gv('informeEdificio'), fecha: this.gv('informeFecha'), titulo: this.gv('informeTitulo'),
-            descripcion: this.gv('informeDescripcion'), observaciones: this.gv('informeObservaciones'),
-            pendientes: this.gv('informePendientes'),
-            tareasResumen: getTareas(), visitasResumen: getVisitas(), incidenciasResumen: getIncidencias()
-        };
-        if (id) { const i = this.data.informesDiarios.findIndex(x => x.id === id); if (i !== -1) { d.id = id; this.data.informesDiarios[i] = { ...this.data.informesDiarios[i], ...d }; await db.put('informesDiarios', this.data.informesDiarios[i]); } }
-        else { d.id = 'INF-' + Date.now(); this.data.informesDiarios.push(d); await db.put('informesDiarios', d); }
-        this.closeModal(); this.renderInformes(); this.showToast(id ? 'Informe actualizado' : 'Informe creado', 'success');
+            const d = {
+                edificio: this.gv('informeEdificio'), fecha: this.gv('informeFecha'), titulo: this.gv('informeTitulo'),
+                descripcion: this.gv('informeDescripcion'), observaciones: this.gv('informeObservaciones'),
+                pendientes: this.gv('informePendientes'),
+                tareasResumen: getTareas(), visitasResumen: getVisitas(), incidenciasResumen: getIncidencias()
+            };
+            if (id) { const i = this.data.informesDiarios.findIndex(x => x.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); this.data.informesDiarios[i] = { ...this.data.informesDiarios[i], ...d }; await db.put('informesDiarios', this.data.informesDiarios[i]); } }
+            else { d.id = 'INF-' + Date.now(); d.createdAt = new Date().toISOString(); this.data.informesDiarios.push(d); await db.put('informesDiarios', d); }
+            this.closeModal(); this.renderInformes(); this.showToast(id ? 'Informe actualizado' : 'Informe creado', 'success');
+        } catch (err) { console.error('Error guardando informe:', err); this.showToast('Error al guardar', 'error'); }
     }
 
     editInforme(id) { const i = this.data.informesDiarios.find(x => x.id === id); if (i) this.showModal('Editar Informe', this.getInformeForm(i), () => this.saveInforme(i.id)); }
@@ -1022,10 +1199,12 @@ class MaintenanceApp {
     }
 
     async saveProveedor(id = null) {
-        const d = { empresa: this.gv('provEmpresa'), servicio: this.gv('provServicio'), contacto: this.gv('provContacto'), telefono: this.gv('provTelefono'), email: this.gv('provEmail'), calificacion: parseInt(this.gv('provCalificacion')) || 4, estado: 'Activo' };
-        if (id) { const i = this.data.proveedores.findIndex(p => p.id === id); if (i !== -1) { d.id = id; this.data.proveedores[i] = { ...this.data.proveedores[i], ...d }; await db.put('proveedores', this.data.proveedores[i]); } }
-        else { d.id = 'PRV-' + Date.now(); this.data.proveedores.push(d); await db.put('proveedores', d); }
-        this.closeModal(); this.renderProveedores(); this.showToast(id ? 'Proveedor actualizado' : 'Proveedor creado', 'success');
+        try {
+            const d = { empresa: this.gv('provEmpresa'), servicio: this.gv('provServicio'), contacto: this.gv('provContacto'), telefono: this.gv('provTelefono'), email: this.gv('provEmail'), calificacion: parseInt(this.gv('provCalificacion')) || 4, estado: 'Activo' };
+            if (id) { const i = this.data.proveedores.findIndex(p => p.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); this.data.proveedores[i] = { ...this.data.proveedores[i], ...d }; await db.put('proveedores', this.data.proveedores[i]); } }
+            else { d.id = 'PRV-' + Date.now(); d.createdAt = new Date().toISOString(); this.data.proveedores.push(d); await db.put('proveedores', d); }
+            this.closeModal(); this.renderProveedores(); this.showToast(id ? 'Proveedor actualizado' : 'Proveedor creado', 'success');
+        } catch (err) { console.error('Error guardando proveedor:', err); this.showToast('Error al guardar', 'error'); }
     }
 
     editProveedor(id) { const p = this.data.proveedores.find(x => x.id === id); if (p) this.showModal('Editar Proveedor', this.getProveedorForm(p), () => this.saveProveedor(p.id)); }
@@ -1103,11 +1282,13 @@ class MaintenanceApp {
     }
 
     async saveConfig() {
-        for (const [k, v] of [['nombreEmpresa', 'nombreEmpresa'], ['administrador', 'administrador'], ['emailNotif', 'emailNotif'], ['telefono', 'telefonoEdificio']]) {
-            const el = document.getElementById(v);
-            if (el) await db.put('config', { key: k, value: el.value });
-        }
-        this.showToast('Configuración guardada', 'success');
+        try {
+            for (const [k, v] of [['nombreEmpresa', 'nombreEmpresa'], ['administrador', 'administrador'], ['emailNotif', 'emailNotif'], ['telefono', 'telefonoEdificio']]) {
+                const el = document.getElementById(v);
+                if (el) await db.put('config', { key: k, value: el.value });
+            }
+            this.showToast('Configuración guardada', 'success');
+        } catch (err) { console.error('Error guardando configuración:', err); this.showToast('Error al guardar', 'error'); }
     }
 
     // =================== UTILITIES ===================
@@ -1182,3 +1363,14 @@ class MaintenanceApp {
 
 const app = new MaintenanceApp();
 document.addEventListener('DOMContentLoaded', () => app.init());
+
+// Global error handler
+window.onerror = function(msg, url, line, col, error) {
+    console.error('Global error:', { msg, url, line, col, error });
+    if (app.showToast) app.showToast('Error inesperado. Revisa la consola.', 'error');
+    return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+    console.error('Unhandled promise rejection:', e.reason);
+    if (app.showToast) app.showToast('Error de conexión.', 'error');
+});
