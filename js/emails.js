@@ -128,6 +128,22 @@ class EmailGenerator {
                     <div class="form-group"><label>Fecha necesitada</label><input type="date" id="emailFecha" value="${today}" onchange="emailGenerator.updatePreview()"></div>
                 </div>
                 <div class="form-group"><label>Requisitos adicionales</label><textarea id="emailMensajeExtra" rows="2" placeholder="Incluir garantía, especificaciones técnicas, opciones de pago... (opcional)" oninput="emailGenerator.updatePreview()"></textarea></div>
+            `,
+            visita: `
+                <div class="form-row">
+                    <div class="form-group"><label>CIRION *</label><select id="emailEdificio" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option>${ediOptions}</select></div>
+                    <div class="form-group"><label>Proveedor *</label><select id="emailProveedor" onchange="emailGenerator.onProveedorChange()"><option value="">Seleccionar proveedor...</option>${provOptions}</select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Tipo de visita *</label><select id="emailCategoria" onchange="emailGenerator.updatePreview()"><option value="">Seleccionar...</option><option value="Inspección">Inspección</option><option value="Mantenimiento Preventivo">Mantenimiento Preventivo</option><option value="Mantenimiento Correctivo">Mantenimiento Correctivo</option><option value="Supervisión">Supervisión</option><option value="Auditoría">Auditoría</option></select></div>
+                    <div class="form-group"><label>Ubicación</label><select id="emailUbicacion" onchange="emailGenerator.updatePreview()">${ubiOptions}</select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Fecha de la visita *</label><input type="date" id="emailFecha" value="${today}" onchange="emailGenerator.updatePreview()"></div>
+                    <div class="form-group"><label>Hora preferida</label><input type="text" id="emailCantidad" placeholder="Ej: 10:00 - 12:00" oninput="emailGenerator.updatePreview()"></div>
+                </div>
+                <div class="form-group"><label>Motivo / Descripción *</label><textarea id="emailDescripcion" rows="3" placeholder="Ej: Se requiere visita de inspección para revisión trimestral de instalaciones..." oninput="emailGenerator.updatePreview()"></textarea></div>
+                <div class="form-group"><label>Checklist a realizar</label><textarea id="emailMensajeExtra" rows="2" placeholder="Áreas o items a revisar durante la visita... (opcional)" oninput="emailGenerator.updatePreview()"></textarea></div>
             `
         };
     }
@@ -139,7 +155,8 @@ class EmailGenerator {
             seguimiento: 'Seguimiento de Actividad',
             confirmacion: 'Confirmación de Trabajo',
             recordatorio: 'Recordatorio',
-            cotizacion: 'Solicitud de Cotización'
+            cotizacion: 'Solicitud de Cotización',
+            visita: 'Solicitud de Visita'
         };
         return titles[type] || '';
     }
@@ -358,7 +375,37 @@ Agradecemos incluir:
 • Condiciones de pago
 • Vigencia de la cotización
 
-Quedamos a sus órdenes.
+                Quedamos a sus órdenes.
+
+Atentamente,
+${cfg.administrador}
+CIRION ${edificio}
+${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
+${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
+                break;
+
+            case 'visita':
+                subject = `Solicitud de Visita - ${edificio} - ${categoria || 'Visita'}`;
+                body = `Estimado/a ${proveedorNombre}:
+
+Reciba un cordial saludo.
+
+Por medio de la presente, nos dirigimos a usted para solicitar una visita técnica a las instalaciones del CIRION ${edificio}.
+
+DETALLE DE LA VISITA:
+• CIRION: ${edificio}
+• Tipo de visita: ${categoria || 'Por definir'}
+• Ubicación: ${ubicacion || 'General'}
+• Fecha solicitada: ${fecha}
+${cantidad ? `• Hora preferida: ${cantidad}` : ''}
+
+MOTIVO DE LA VISITA:
+${descripcion}
+${mensajeExtra ? `\nCHECKLIST / ÁREAS A REVISAR:\n${mensajeExtra}` : ''}
+
+Agradecemos confirmar disponibilidad y horario para dicha visita.
+
+Quedamos a sus órdenes para cualquier consulta.
 
 Atentamente,
 ${cfg.administrador}
@@ -396,19 +443,18 @@ ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
     async copyToClipboard() {
         if (!this.currentType) return;
         const email = await this.buildEmail();
-        const text = `Para: ${email.to}\nAsunto: ${email.subject}\n\n${email.body}`;
 
         try {
-            await navigator.clipboard.writeText(text);
-            app.showToast('Email copiado al portapapeles', 'success');
+            await navigator.clipboard.writeText(email.body);
+            app.showToast('Texto del correo copiado', 'success');
         } catch (e) {
             const textarea = document.createElement('textarea');
-            textarea.value = text;
+            textarea.value = email.body;
             document.body.appendChild(textarea);
             textarea.select();
             document.execCommand('copy');
             document.body.removeChild(textarea);
-            app.showToast('Email copiado al portapapeles', 'success');
+            app.showToast('Texto del correo copiado', 'success');
         }
     }
 
