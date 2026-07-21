@@ -445,8 +445,60 @@ class MaintenanceApp {
     openInspeccion(id) {
         const v = this.data.visitas.find(x => x.id === id);
         if (!v) return;
-        this._inspeccionVisitaId = id;
+        this._inspCats = v.checklist || [];
+        this._inspIdx = 0;
         this.showModal(`Inspección — ${v.edificio}`, this.getInspeccionForm(v), () => this.saveInspeccionResults(id));
+        setTimeout(() => this._setupInspeccionEvents(), 50);
+    }
+
+    _setupInspeccionEvents() {
+        const cats = this._inspCats;
+        const total = cats.length;
+        const self = this;
+
+        function showCard(idx) {
+            document.querySelectorAll('.insp-card').forEach(c => c.style.display = 'none');
+            const card = document.querySelector('.insp-card[data-idx="' + idx + '"]');
+            if (card) card.style.display = 'block';
+            document.querySelectorAll('.insp-dot').forEach((d, i) => {
+                d.style.transform = i === idx ? 'scale(1.4)' : 'scale(1)';
+                if (i === idx) { const cd = CHECKLIST_CATEGORIES[cats[i]]; d.style.background = cd?.color || '#3b82f6'; }
+                else d.style.background = '#cbd5e1';
+            });
+            const prev = document.getElementById('inspPrev');
+            const next = document.getElementById('inspNext');
+            if (prev) prev.style.visibility = idx === 0 ? 'hidden' : 'visible';
+            if (next) {
+                if (idx === total - 1) { next.textContent = '✓ Guardar'; next.style.background = '#22c55e'; }
+                else { next.innerHTML = 'Siguiente →'; next.style.background = '#3b82f6'; }
+            }
+        }
+
+        const prev = document.getElementById('inspPrev');
+        const next = document.getElementById('inspNext');
+        if (prev) prev.onclick = () => { if (self._inspIdx > 0) { self._inspIdx--; showCard(self._inspIdx); } };
+        if (next) next.onclick = () => {
+            if (self._inspIdx < total - 1) { self._inspIdx++; showCard(self._inspIdx); }
+            else { document.getElementById('modalSave')?.click(); }
+        };
+
+        document.querySelectorAll('.insp-dot').forEach(dot => {
+            dot.onclick = () => { self._inspIdx = parseInt(dot.dataset.idx); showCard(self._inspIdx); };
+        });
+
+        document.querySelectorAll('.insp-btn-insp').forEach(btn => {
+            btn.onclick = function() {
+                const cat = this.dataset.cat, item = this.dataset.item;
+                document.querySelectorAll('.insp-btn-insp[data-cat="' + cat + '"][data-item="' + item + '"]').forEach(b => {
+                    b.style.background = '#f1f5f9'; b.style.borderColor = '#e2e8f0'; b.style.color = '#94a3b8'; b.dataset.selected = 'false';
+                });
+                if (this.dataset.status === 'pass') { this.style.background = '#22c55e'; this.style.borderColor = '#22c55e'; this.style.color = '#fff'; }
+                else { this.style.background = '#ef4444'; this.style.borderColor = '#ef4444'; this.style.color = '#fff'; }
+                this.dataset.selected = 'true';
+            };
+        });
+
+        showCard(0);
     }
 
     getInspeccionForm(v) {
@@ -480,7 +532,6 @@ class MaintenanceApp {
 
             const passCount = savedItems.filter(it => it.status === 'pass').length;
             const failCount = savedItems.filter(it => it.status === 'fail').length;
-            const totalCount = items.length;
 
             const itemsHTML = items.map((itemName, j) => {
                 const s = savedItems.find(si => si.name === itemName);
@@ -502,14 +553,14 @@ class MaintenanceApp {
                 </div>`;
             }).join('');
 
-            return `<div class="insp-card" data-cat="${cat}" data-idx="${i}" style="display:${i === 0 ? 'block' : 'none'};min-width:100%">
+            return `<div class="insp-card" data-cat="${cat}" data-idx="${i}" style="display:${i === 0 ? 'block' : 'none'}">
                 <div style="background:${color};border-radius:16px;padding:16px 18px;margin-bottom:14px;color:#fff">
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
                         <i class="fas ${catData.icon}" style="font-size:20px"></i>
                         <div style="font-size:18px;font-weight:700">${cat}</div>
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;opacity:0.9">
-                        <span>${totalCount} items</span>
+                        <span>${items.length} items</span>
                         <span>${passCount} ✓ ${failCount > 0 ? ' · ' + failCount + ' ✗' : ''}</span>
                     </div>
                 </div>
@@ -520,59 +571,17 @@ class MaintenanceApp {
             </div>`;
         }).join('');
 
-        return `<div style="max-width:100%;overflow:hidden">
+        return `<div style="overflow:hidden">
             <div style="text-align:center;margin-bottom:12px">
                 <div style="font-size:13px;color:#64748b;margin-bottom:6px">${doneCount} de ${totalItems} items completados</div>
                 <div style="display:flex;justify-content:center;gap:6px;align-items:center">${dotsHTML}</div>
             </div>
-            <div style="position:relative;overflow:hidden" id="inspCardsContainer">
-                ${cardsHTML}
+            <div id="inspCardsContainer">${cardsHTML}</div>
+            <div style="display:flex;justify-content:space-between;margin-top:14px;gap:10px">
+                <button type="button" id="inspPrev" style="padding:12px 20px;border-radius:10px;border:1px solid #e2e8f0;background:#fff;color:#64748b;font-size:14px;font-weight:600;cursor:pointer">← Anterior</button>
+                <button type="button" id="inspNext" style="padding:12px 20px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-size:14px;font-weight:600;cursor:pointer;flex:1;max-width:200px">Siguiente →</button>
             </div>
-            <div style="display:flex;justify-content:space-between;margin-top:14px">
-                <button type="button" id="inspPrev" style="padding:12px 20px;border-radius:10px;border:1px solid #e2e8f0;background:#fff;color:#64748b;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">← Anterior</button>
-                <button type="button" id="inspNext" style="padding:12px 20px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">Siguiente →</button>
-            </div>
-        </div>
-        <script>
-        (function() {
-            let current = 0;
-            const total = ${cats.length};
-            const cats = ${JSON.stringify(cats)};
-            function showCard(idx) {
-                document.querySelectorAll('.insp-card').forEach(c => c.style.display = 'none');
-                const card = document.querySelector('.insp-card[data-idx="' + idx + '"]');
-                if (card) card.style.display = 'block';
-                document.querySelectorAll('.insp-dot').forEach((d, i) => {
-                    d.style.transform = i === idx ? 'scale(1.4)' : 'scale(1)';
-                    if (i === idx) { d.style.background = CHECKLIST_CATEGORIES[cats[i]]?.color || '#3b82f6'; }
-                });
-                document.getElementById('inspPrev').style.visibility = idx === 0 ? 'hidden' : 'visible';
-                const nextBtn = document.getElementById('inspNext');
-                if (idx === total - 1) { nextBtn.textContent = '✓ Guardar'; nextBtn.style.background = '#22c55e'; }
-                else { nextBtn.innerHTML = 'Siguiente →'; nextBtn.style.background = '#3b82f6'; }
-            }
-            document.getElementById('inspPrev').addEventListener('click', () => { if (current > 0) { current--; showCard(current); } });
-            document.getElementById('inspNext').addEventListener('click', () => {
-                if (current < total - 1) { current++; showCard(current); }
-                else { document.querySelector('#modalSave').click(); }
-            });
-            document.querySelectorAll('.insp-dot').forEach(dot => {
-                dot.addEventListener('click', function() { current = parseInt(this.dataset.idx); showCard(current); });
-            });
-            document.querySelectorAll('.insp-btn-insp').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const cat = this.dataset.cat, item = this.dataset.item;
-                    document.querySelectorAll('.insp-btn-insp[data-cat="' + cat + '"][data-item="' + item + '"]').forEach(b => {
-                        b.style.background = '#f1f5f9'; b.style.borderColor = '#e2e8f0'; b.style.color = '#94a3b8'; b.dataset.selected = 'false';
-                    });
-                    if (this.dataset.status === 'pass') { this.style.background = '#22c55e'; this.style.borderColor = '#22c55e'; this.style.color = '#fff'; }
-                    else { this.style.background = '#ef4444'; this.style.borderColor = '#ef4444'; this.style.color = '#fff'; }
-                    this.dataset.selected = 'true';
-                });
-            });
-            showCard(0);
-        })();
-        </script>`;
+        </div>`;
     }
 
     async saveInspeccionResults(id) {
