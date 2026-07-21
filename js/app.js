@@ -391,7 +391,9 @@ class MaintenanceApp {
                 <td><span class="status-badge status-${v.estado.toLowerCase().replace(' ', '')}">${v.estado}</span></td>
                 <td class="actions-cell">
                     <button class="btn-success btn-sm" onclick="app.editVisita('${v.id}')" title="Editar"><i class="fas fa-edit"></i></button>
-                    <button class="btn-primary btn-sm" onclick="app.exportVisitaChecklist('${v.id}')" title="Exportar Checklist Excel"><i class="fas fa-file-excel"></i></button>
+                    ${v.checklist && v.checklist.length ? `<button class="btn-sm" style="background:#8b5cf6;color:#fff" onclick="app.openInspeccion('${v.id}')" title="Realizar Inspección"><i class="fas fa-clipboard-check"></i></button>` : ''}
+                    <button class="btn-primary btn-sm" onclick="app.exportVisitaChecklist('${v.id}')" title="Exportar Plan Checklist"><i class="fas fa-file-excel"></i></button>
+                    ${v.checklistResults ? `<button class="btn-sm" style="background:#059669;color:#fff" onclick="app.exportVisitaChecklist('${v.id}','results')" title="Exportar Resultados"><i class="fas fa-file-check"></i></button>` : ''}
                     <button class="btn-danger btn-sm" onclick="app.deleteVisita('${v.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>`;
@@ -440,20 +442,167 @@ class MaintenanceApp {
     editVisita(id) { const v = this.data.visitas.find(x => x.id === id); if (v) this.showModal('Editar Visita', this.getVisitaForm(v), () => this.saveVisita(v.id)); }
     async deleteVisita(id) { if (!confirm('¿Eliminar visita?')) return; this.data.visitas = this.data.visitas.filter(v => v.id !== id); await db.delete('visitas', id); this.renderVisitas(); this.showToast('Visita eliminada', 'success'); }
 
-    async exportVisitaChecklist(id) {
+    openInspeccion(id) {
+        const v = this.data.visitas.find(x => x.id === id);
+        if (!v) return;
+        this._inspeccionVisitaId = id;
+        this.showModal(`Inspección — ${v.edificio}`, this.getInspeccionForm(v), () => this.saveInspeccionResults(id));
+    }
+
+    getInspeccionForm(v) {
+        const saved = v.checklistResults || {};
+        const cats = v.checklist || [];
+        if (!cats.length) return '<p style="color:#64748b">No hay categorías asignadas.</p>';
+
+        const catTabsHTML = cats.map((cat, i) => {
+            const catData = CHECKLIST_CATEGORIES[cat];
+            if (!catData) return '';
+            const hasResults = saved[cat]?.items?.some(it => it.status);
+            const color = catData.color;
+            return `<button type="button" class="insp-cat-tab ${i === 0 ? 'active' : ''}" data-cat="${cat}" style="background:${i === 0 ? color : '#f1f5f9'};color:${i === 0 ? '#fff' : '#64748b'};border:1px solid ${i === 0 ? color : '#e2e8f0'};padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;transition:all 0.2s">
+                <i class="fas ${catData.icon}"></i> ${cat}
+                ${hasResults ? '<span style="width:8px;height:8px;background:#22c55e;border-radius:50%;margin-left:auto"></span>' : ''}
+            </button>`;
+        }).join('');
+
+        const panelsHTML = cats.map((cat, i) => {
+            const catData = CHECKLIST_CATEGORIES[cat];
+            if (!catData) return '';
+            const items = catData.items || [];
+            const savedItems = saved[cat]?.items || [];
+            const catObs = saved[cat]?.catObs || '';
+
+            const rows = items.map((itemName, j) => {
+                const s = savedItems.find(si => si.name === itemName);
+                const status = s?.status || '';
+                const obs = s?.obs || '';
+                return `<tr style="background:${j % 2 === 0 ? '#fff' : '#f8fafc'}">
+                    <td style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#334155;width:30px;text-align:center;color:#94a3b8">${j + 1}</td>
+                    <td style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#334155;font-weight:500">${itemName}</td>
+                    <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:center">
+                        <button type="button" class="insp-btn-insp" data-cat="${cat}" data-item="${j}" data-status="pass" style="width:36px;height:36px;border-radius:8px;border:2px solid ${status === 'pass' ? '#22c55e' : '#e2e8f0'};background:${status === 'pass' ? '#dcfce7' : '#fff'};cursor:pointer;font-size:18px;color:${status === 'pass' ? '#16a34a' : '#cbd5e1'};transition:all 0.15s;display:inline-flex;align-items:center;justify-content:center">✓</button>
+                        <button type="button" class="insp-btn-insp" data-cat="${cat}" data-item="${j}" data-status="fail" style="width:36px;height:36px;border-radius:8px;border:2px solid ${status === 'fail' ? '#ef4444' : '#e2e8f0'};background:${status === 'fail' ? '#fef2f2' : '#fff'};cursor:pointer;font-size:18px;color:${status === 'fail' ? '#dc2626' : '#cbd5e1'};margin-left:4px;transition:all 0.15s;display:inline-flex;align-items:center;justify-content:center">✗</button>
+                    </td>
+                    <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0"><input type="text" class="insp-obs" data-cat="${cat}" data-item="${j}" value="${this.escapeHtml(obs)}" placeholder="Observaciones..." style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:12px;color:#334155;outline:none"></td>
+                </tr>`;
+            }).join('');
+
+            return `<div class="insp-panel" data-cat="${cat}" style="display:${i === 0 ? 'block' : 'none'}">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:${catData.color}10;border-radius:10px;border:1px solid ${catData.color}30">
+                    <i class="fas ${catData.icon}" style="color:${catData.color};font-size:18px"></i>
+                    <div>
+                        <div style="font-size:14px;font-weight:700;color:${catData.color}">${cat}</div>
+                        <div style="font-size:11px;color:#64748b">${items.length} items a inspeccionar</div>
+                    </div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+                    <thead><tr style="background:#f1f5f9">
+                        <th style="padding:8px;font-size:11px;font-weight:600;color:#64748b;text-align:center;width:30px">#</th>
+                        <th style="padding:8px;font-size:11px;font-weight:600;color:#64748b;text-align:left">Item</th>
+                        <th style="padding:8px;font-size:11px;font-weight:600;color:#64748b;text-align:center;width:100px">Estado</th>
+                        <th style="padding:8px;font-size:11px;font-weight:600;color:#64748b;text-align:left">Observaciones</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+                <div style="margin-top:10px">
+                    <label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:4px">Observaciones de la categoría:</label>
+                    <textarea class="insp-cat-obs" data-cat="${cat}" rows="2" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:12px;color:#334155;outline:none;resize:vertical">${this.escapeHtml(catObs)}</textarea>
+                </div>
+            </div>`;
+        }).join('');
+
+        return `<div style="display:flex;gap:16px;min-height:420px">
+            <div style="width:220px;flex-shrink:0;display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Categorías</div>
+                ${catTabsHTML}
+            </div>
+            <div style="flex:1;overflow-y:auto;max-height:500px;padding-right:4px">
+                ${panelsHTML}
+            </div>
+        </div>
+        <script>
+        document.querySelectorAll('.insp-cat-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.insp-cat-tab').forEach(t => { t.style.background = '#f1f5f9'; t.style.color = '#64748b'; t.style.borderColor = '#e2e8f0'; t.classList.remove('active'); });
+                document.querySelectorAll('.insp-panel').forEach(p => p.style.display = 'none');
+                const cat = this.dataset.cat;
+                const catData = CHECKLIST_CATEGORIES[cat];
+                this.style.background = catData ? catData.color : '#3b82f6';
+                this.style.color = '#fff';
+                this.style.borderColor = catData ? catData.color : '#3b82f6';
+                this.classList.add('active');
+                document.querySelector('.insp-panel[data-cat="' + cat + '"]').style.display = 'block';
+            });
+        });
+        document.querySelectorAll('.insp-btn-insp').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const cat = this.dataset.cat, item = this.dataset.item, status = this.dataset.status;
+                const siblings = document.querySelectorAll('.insp-btn-insp[data-cat="' + cat + '"][data-item="' + item + '"]');
+                siblings.forEach(s => {
+                    s.style.borderColor = '#e2e8f0';
+                    s.style.background = '#fff';
+                    s.style.color = '#cbd5e1';
+                });
+                const catData = CHECKLIST_CATEGORIES[cat];
+                const color = catData ? catData.color : '#3b82f6';
+                if (status === 'pass') { this.style.borderColor = '#22c55e'; this.style.background = '#dcfce7'; this.style.color = '#16a34a'; }
+                else { this.style.borderColor = '#ef4444'; this.style.background = '#fef2f2'; this.style.color = '#dc2626'; }
+                this.dataset.selected = 'true';
+            });
+        });
+        </script>`;
+    }
+
+    async saveInspeccionResults(id) {
+        try {
+            const v = this.data.visitas.find(x => x.id === id);
+            if (!v) return;
+            const results = {};
+            const cats = v.checklist || [];
+
+            cats.forEach(cat => {
+                const catData = CHECKLIST_CATEGORIES[cat];
+                if (!catData) return;
+                const items = catData.items.map((itemName, j) => {
+                    const passBtn = document.querySelector(`.insp-btn-insp[data-cat="${cat}"][data-item="${j}"][data-status="pass"]`);
+                    const failBtn = document.querySelector(`.insp-btn-insp[data-cat="${cat}"][data-item="${j}"][data-status="fail"]`);
+                    const obsInput = document.querySelector(`.insp-obs[data-cat="${cat}"][data-item="${j}"]`);
+                    let status = 'pending';
+                    if (passBtn && passBtn.style.borderColor === 'rgb(34, 197, 94)') status = 'pass';
+                    else if (failBtn && failBtn.style.borderColor === 'rgb(239, 68, 68)') status = 'fail';
+                    return { name: itemName, status, obs: obsInput?.value || '' };
+                });
+                const catObsEl = document.querySelector(`.insp-cat-obs[data-cat="${cat}"]`);
+                results[cat] = { items, catObs: catObsEl?.value || '' };
+            });
+
+            v.checklistResults = results;
+            v.updatedAt = new Date().toISOString();
+            await db.put('visitas', v);
+            this.closeModal();
+            this.renderVisitas();
+            this.showToast('Inspección guardada', 'success');
+        } catch (err) {
+            console.error('Error guardando inspección:', err);
+            this.showToast('Error al guardar inspección', 'error');
+        }
+    }
+
+    async exportVisitaChecklist(id, mode = 'plan') {
         const visita = this.data.visitas.find(v => v.id === id);
         if (!visita) return;
         if (!visita.checklist || !visita.checklist.length) { this.showToast('Esta visita no tiene checklist asignado', 'warning'); return; }
+        if (mode === 'results' && !visita.checklistResults) { this.showToast('Aún no hay resultados de inspección', 'warning'); return; }
 
         try {
-            this.showToast('Generando Excel...', 'info');
+            this.showToast(mode === 'results' ? 'Generando Excel de resultados...' : 'Generando Excel...', 'info');
             const empresa = document.getElementById('nombreEmpresa')?.value || 'Facility Management';
             const edificios = this.data.listas.edificios || [];
 
             const res = await fetch('/api/export-visita-checklist', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ visita, empresa, edificios })
+                body: JSON.stringify({ visita, empresa, edificios, mode })
             });
 
             if (!res.ok) throw new Error('Error generating file');
@@ -462,10 +611,11 @@ class MaintenanceApp {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Checklist_${visita.edificio}_${visita.fecha}_${visita.id}.xlsx`;
+            const suffix = mode === 'results' ? '_Resultados' : '';
+            a.download = `Checklist${suffix}_${visita.edificio}_${visita.fecha}_${visita.id}.xlsx`;
             a.click();
             URL.revokeObjectURL(url);
-            this.showToast('Checklist exportado', 'success');
+            this.showToast(mode === 'results' ? 'Resultados exportados' : 'Checklist exportado', 'success');
         } catch (err) {
             this.showToast('Error al exportar', 'error');
         }

@@ -6,7 +6,8 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        const { visita, empresa, edificios } = req.body;
+        const { visita, empresa, edificios, mode } = req.body;
+        const isResults = mode === 'results';
 
         if (!visita || !visita.checklist || !visita.checklist.length) {
             return res.status(400).json({ error: 'No checklist data' });
@@ -45,7 +46,7 @@ module.exports = async function handler(req, res) {
 
         resumenSheet.mergeCells('A3:E3');
         const hdr3 = resumenSheet.getCell('A3');
-        hdr3.value = 'CHECKLIST DE INSPECCIÓN — INFORME DE VISITA';
+        hdr3.value = isResults ? 'RESULTADOS DE INSPECCIÓN — INFORME DE VISITA' : 'CHECKLIST DE INSPECCIÓN — INFORME DE VISITA';
         hdr3.font = { name: 'Arial', size: 22, bold: true, color: { argb: 'FFFFFFFF' } };
         hdr3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: edArgb } };
         hdr3.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -104,14 +105,15 @@ module.exports = async function handler(req, res) {
         const secCatRow = resumenSheet.lastRow.number + 1;
         resumenSheet.mergeCells(`A${secCatRow}:E${secCatRow}`);
         const secCat = resumenSheet.getCell(`A${secCatRow}`);
-        secCat.value = 'CATEGORÍAS A INSPECCIONAR';
+        secCat.value = isResults ? 'RESULTADOS POR CATEGORÍA' : 'CATEGORÍAS A INSPECCIONAR';
         secCat.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
         secCat.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
         secCat.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
         resumenSheet.getRow(secCatRow).height = 28;
 
         // Table header
-        const catHeaderRow = resumenSheet.addRow(['#', 'Categoría', '', 'Items', '']);
+        const isResultsMode = isResults;
+        const catHeaderRow = resumenSheet.addRow(isResultsMode ? ['#', 'Categoría', '', 'Aprobados / Fallidos', ''] : ['#', 'Categoría', '', 'Items', '']);
         resumenSheet.mergeCells(`B${catHeaderRow.number}:C${catHeaderRow.number}`);
         resumenSheet.mergeCells(`D${catHeaderRow.number}:E${catHeaderRow.number}`);
         catHeaderRow.height = 26;
@@ -123,12 +125,18 @@ module.exports = async function handler(req, res) {
 
         // Category rows
         let catIdx = 1;
-        const catStartRow = resumenSheet.lastRow.number + 1;
         visita.checklist.forEach((cat) => {
             const catData = CHECKLIST_CATS[cat];
             if (!catData) return;
             const catColor = (CHECKLIST_COLORS[cat] || edColor).replace('#', 'FF');
-            const r = resumenSheet.addRow([catIdx, cat, '', `${catData.items.length} items`, '']);
+            let col4Text = `${catData.items.length} items`;
+            if (isResults && visita.checklistResults?.[cat]?.items) {
+                const items = visita.checklistResults[cat].items;
+                const pass = items.filter(i => i.status === 'pass').length;
+                const fail = items.filter(i => i.status === 'fail').length;
+                col4Text = `${pass} ✓  /  ${fail} ✗`;
+            }
+            const r = resumenSheet.addRow([catIdx, cat, '', col4Text, '']);
             resumenSheet.mergeCells(`B${r.number}:C${r.number}`);
             resumenSheet.mergeCells(`D${r.number}:E${r.number}`);
             r.height = 24;
@@ -226,8 +234,17 @@ module.exports = async function handler(req, res) {
             });
 
             // Items
+            const savedResults = isResults ? (visita.checklistResults || {})[cat] : null;
+            const savedItems = savedResults?.items || [];
             catData.items.forEach((item, rowIdx) => {
-                const row = ws.addRow([rowIdx + 1, item, '☐', '☐', '', '']);
+                const si = savedItems.find(s => s.name === item);
+                const status = si?.status || '';
+                const obs = si?.obs || '';
+                const passMark = status === 'pass' ? '✓' : '☐';
+                const failMark = status === 'fail' ? '✗' : '☐';
+                const passColor = status === 'pass' ? 'FF22C55E' : 'FF94A3B8';
+                const failColor = status === 'fail' ? 'FFEF4444' : 'FF94A3B8';
+                const row = ws.addRow([rowIdx + 1, item, passMark, failMark, obs, '']);
                 const rowBg = rowIdx % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
                 row.height = 30;
                 row.eachCell((cell, colNumber) => {
@@ -240,11 +257,24 @@ module.exports = async function handler(req, res) {
                         left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
                         right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
                     };
-                    if (colNumber === 3 || colNumber === 4) {
-                        cell.font = { name: 'Arial', size: 16, color: { argb: 'FF94A3B8' } };
+                    if (colNumber === 3) {
+                        cell.font = { name: 'Arial', size: 16, bold: status === 'pass', color: { argb: passColor } };
+                    }
+                    if (colNumber === 4) {
+                        cell.font = { name: 'Arial', size: 16, bold: status === 'fail', color: { argb: failColor } };
                     }
                 });
             });
+
+            // Category observations
+            if (isResults && savedResults?.catObs) {
+                ws.addRow([]);
+                const obsRow = ws.addRow(['', 'Observaciones:', savedResults.catObs, '', '', '']);
+                obsRow.height = 24;
+                ws.mergeCells(`C${obsRow.number}:F${obsRow.number}`);
+                obsRow.getCell(2).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF475569' } };
+                obsRow.getCell(3).font = { name: 'Arial', size: 10, italic: true, color: { argb: 'FF334155' } };
+            }
 
             // Signature
             ws.addRow([]);
