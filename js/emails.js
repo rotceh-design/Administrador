@@ -318,6 +318,8 @@ ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
             createdAt: new Date().toISOString()
         };
     }
+
+    async buildEmail() {
         await this.getConfig();
         const prov = this.getProveedorInfo();
         const proveedorNombre = prov ? prov.contacto : 'Proveedor';
