@@ -373,166 +373,279 @@ class MaintenanceApp {
         const eds = this.data.listas.edificios || [];
         const grid = document.getElementById('cronogramaGrid');
         if (!grid) return;
-
         if (eds.length === 0) { grid.innerHTML = '<p class="crono-empty">Agrega edificios en Configuración para ver el cronograma</p>'; return; }
 
-        let dateRange, periodLabel;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         if (this.cronogramaView === 'monthly') {
             document.getElementById('currentPeriod').textContent = `${meses[this.currentMonth]} ${this.currentYear}`;
-            const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-            const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
-            dateRange = { start: firstDay, end: lastDay, daysInPeriod: lastDay.getDate() };
-            periodLabel = `${meses[this.currentMonth]} ${this.currentYear}`;
+            this._renderMonthlyCalendar(grid, eds, today);
         } else {
             const weekEnd = new Date(this.currentWeekStart);
             weekEnd.setDate(weekEnd.getDate() + 6);
-            const startStr = `${this.currentWeekStart.getDate()}/${this.currentWeekStart.getMonth() + 1}`;
-            const endStr = `${weekEnd.getDate()}/${weekEnd.getMonth() + 1}/${weekEnd.getFullYear()}`;
-            document.getElementById('currentPeriod').textContent = `Semana ${startStr} - ${endStr}`;
-            dateRange = { start: new Date(this.currentWeekStart), end: weekEnd, daysInPeriod: 7 };
-            periodLabel = `Semana ${startStr} - ${endStr}`;
+            document.getElementById('currentPeriod').textContent = `${this.currentWeekStart.getDate()} ${meses[this.currentWeekStart.getMonth()]} - ${weekEnd.getDate()} ${meses[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`;
+            this._renderWeeklyCalendar(grid, eds, today);
         }
-
-        const tareas = (this.data.tareas || []).filter(t => { const f = new Date(t.fecha); return f >= dateRange.start && f <= dateRange.end; });
-        const visitas = (this.data.visitas || []).filter(v => { const f = new Date(v.fecha); return f >= dateRange.start && f <= dateRange.end; });
-        const incidencias = (this.data.incidencias || []).filter(i => { const f = new Date(i.fecha); return f >= dateRange.start && f <= dateRange.end; });
-
-        let gridHtml = '';
-        eds.forEach(ed => {
-            const edColor = EDIFICIO_COLORS[ed] || '#6b7280';
-            const edTareas = tareas.filter(t => t.edificio === ed);
-            const edVisitas = visitas.filter(v => v.edificio === ed);
-            const edIncidencias = incidencias.filter(i => i.edificio === ed);
-            const allItems = [
-                ...edTareas.map(t => ({ date: new Date(t.fecha), label: t.actividad, cat: t.categoria, type: 'tarea', estado: t.estado })),
-                ...edVisitas.map(v => ({ date: new Date(v.fecha), label: v.motivo, cat: v.tipo, type: 'visita', estado: v.estado })),
-                ...edIncidencias.map(i => ({ date: new Date(i.fecha), label: i.descripcion, cat: i.categoria, type: 'incidencia', estado: i.estado }))
-            ].sort((a, b) => a.date - b.date);
-
-            let bodyHtml = '';
-            if (this.cronogramaView === 'monthly') {
-                for (let day = 1; day <= dateRange.daysInPeriod; day++) {
-                    const dayItems = allItems.filter(i => i.date.getDate() === day);
-                    if (dayItems.length === 0) continue;
-                    bodyHtml += `<div class="crono-day"><span class="crono-day-num">${day}</span>`;
-                    dayItems.forEach(item => { bodyHtml += this._cronoItemHTML(item); });
-                    bodyHtml += '</div>';
-                }
-            } else {
-                const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-                for (let d = 0; d < 7; d++) {
-                    const dayDate = new Date(this.currentWeekStart);
-                    dayDate.setDate(dayDate.getDate() + d);
-                    const dayItems = allItems.filter(i => i.date.getDate() === dayDate.getDate() && i.date.getMonth() === dayDate.getMonth());
-                    const isToday = dayDate.toDateString() === new Date().toDateString();
-                    bodyHtml += `<div class="crono-day ${isToday ? 'crono-today' : ''}"><span class="crono-day-num">${dayNames[d]} ${dayDate.getDate()}</span>`;
-                    if (dayItems.length > 0) {
-                        dayItems.forEach(item => { bodyHtml += this._cronoItemHTML(item); });
-                    } else {
-                        bodyHtml += '<div class="crono-item crono-empty-day">Sin actividades</div>';
-                    }
-                    bodyHtml += '</div>';
-                }
-            }
-
-            gridHtml += `<div class="cronograma-col"><div class="cronograma-col-header" style="border-color:${edColor}"><h4><span class="edificio-dot" style="background:${edColor}"></span>${ed}</h4></div><div class="cronograma-col-body">${bodyHtml || '<p class="crono-empty">Sin actividades</p>'}</div></div>`;
-        });
-        grid.innerHTML = gridHtml;
     }
 
-    _cronoItemHTML(item) {
-        const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#6b7280' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
-        const icon = item.type === 'tarea' ? 'fa-tasks' : item.type === 'visita' ? 'fa-clipboard-check' : 'fa-exclamation-triangle';
-        const estadoClass = item.estado === 'Completado' ? 'crono-item-done' : '';
-        const label = item.label.length > 25 ? item.label.substring(0, 25) + '...' : item.label;
-        return `<div class="crono-item ${estadoClass}" style="border-left-color:${color}" title="${item.label}"><i class="fas ${icon}" style="color:${color}"></i><span>${label}</span></div>`;
+    _getItemsForRange(start, end, edificio) {
+        const tareas = (this.data.tareas || []).filter(t => t.edificio === edificio);
+        const visitas = (this.data.visitas || []).filter(v => v.edificio === edificio);
+        const incidencias = (this.data.incidencias || []).filter(i => i.edificio === edificio);
+        const result = [];
+        tareas.forEach(t => {
+            const f = new Date(t.fecha + 'T00:00:00');
+            if (f >= start && f <= end) result.push({ date: f, label: t.actividad, cat: t.categoria, type: 'tarea', estado: t.estado });
+        });
+        visitas.forEach(v => {
+            const f = new Date(v.fecha + 'T00:00:00');
+            if (f >= start && f <= end) result.push({ date: f, label: v.motivo, cat: v.tipo, type: 'visita', estado: v.estado });
+        });
+        incidencias.forEach(i => {
+            const f = new Date(i.fecha + 'T00:00:00');
+            if (f >= start && f <= end) result.push({ date: f, label: i.descripcion, cat: i.categoria, type: 'incidencia', estado: i.estado });
+        });
+        return result;
+    }
+
+    _renderMonthlyCalendar(grid, eds, today) {
+        const year = this.currentYear;
+        const month = this.currentMonth;
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startPad = (firstDay.getDay() + 6) % 7;
+        const totalDays = lastDay.getDate();
+        const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+        const rangeStart = new Date(year, month, 1);
+        const rangeEnd = new Date(year, month + 1, 0);
+        const allItems = eds.flatMap(ed => this._getItemsForRange(rangeStart, rangeEnd, ed));
+
+        let html = '<div class="cal-monthly">';
+        html += `<div class="cal-header-row">${dayNames.map(d => `<div class="cal-header-cell">${d}</div>`).join('')}</div>`;
+        html += '<div class="cal-grid">';
+
+        for (let i = 0; i < startPad; i++) {
+            html += '<div class="cal-cell cal-cell-empty"></div>';
+        }
+
+        for (let day = 1; day <= totalDays; day++) {
+            const cellDate = new Date(year, month, day);
+            const isToday = cellDate.getTime() === today.getTime();
+            const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
+            const dayItems = allItems.filter(i => i.date.getDate() === day);
+
+            html += `<div class="cal-cell ${isToday ? 'cal-today' : ''} ${isWeekend ? 'cal-weekend' : ''}">
+                <div class="cal-day-header"><span class="cal-day-num ${isToday ? 'cal-day-today' : ''}">${day}</span></div>
+                <div class="cal-day-items">`;
+
+            dayItems.slice(0, 4).forEach(item => {
+                const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#6b7280' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
+                const edColor = EDIFICIO_COLORS[eds.find(ed => this._getItemsForRange(cellDate, cellDate, ed).includes(item))] || '#6b7280';
+                const icon = item.type === 'tarea' ? 'fa-check-square' : item.type === 'visita' ? 'fa-calendar-check' : 'fa-exclamation-circle';
+                const done = item.estado === 'Completado';
+                html += `<div class="cal-event ${done ? 'cal-event-done' : ''}" style="--event-color:${color}">
+                    <span class="cal-event-dot" style="background:${color}"></span>
+                    <span class="cal-event-text">${item.label.substring(0, 20)}${item.label.length > 20 ? '...' : ''}</span>
+                </div>`;
+            });
+
+            if (dayItems.length > 4) {
+                html += `<div class="cal-more">+${dayItems.length - 4} más</div>`;
+            }
+
+            html += '</div></div>';
+        }
+
+        const endPad = (7 - ((startPad + totalDays) % 7)) % 7;
+        for (let i = 0; i < endPad; i++) {
+            html += '<div class="cal-cell cal-cell-empty"></div>';
+        }
+
+        html += '</div></div>';
+
+        html += '<div class="cal-legend">';
+        html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#6b7280"></span>Tarea</div>';
+        html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#8b5cf6"></span>Visita</div>';
+        html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#ef4444"></span>Incidencia</div>';
+        eds.forEach(ed => {
+            html += `<div class="cal-legend-item"><span class="cal-legend-dot" style="background:${EDIFICIO_COLORS[ed] || '#6b7280'}"></span>${ed}</div>`;
+        });
+        html += '</div>';
+
+        grid.innerHTML = html;
+    }
+
+    _renderWeeklyCalendar(grid, eds, today) {
+        const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const dayNamesShort = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        const weekEnd = new Date(this.currentWeekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+
+        const allItems = eds.flatMap(ed => this._getItemsForRange(this.currentWeekStart, weekEnd, ed));
+
+        let html = '<div class="cal-weekly">';
+
+        html += '<div class="cal-week-header">';
+        html += '<div class="cal-week-sidebar-spacer"></div>';
+        for (let d = 0; d < 7; d++) {
+            const dayDate = new Date(this.currentWeekStart);
+            dayDate.setDate(dayDate.getDate() + d);
+            const isToday = dayDate.getTime() === today.getTime();
+            html += `<div class="cal-week-day-header ${isToday ? 'cal-week-today-header' : ''}">
+                <span class="cal-week-day-name">${dayNamesShort[d]}</span>
+                <span class="cal-week-day-num ${isToday ? 'cal-week-day-today' : ''}">${dayDate.getDate()}</span>
+            </div>`;
+        }
+        html += '</div>';
+
+        html += '<div class="cal-week-body">';
+        eds.forEach(ed => {
+            const edColor = EDIFICIO_COLORS[ed] || '#6b7280';
+            html += `<div class="cal-week-building" style="--ed-color:${edColor}">
+                <div class="cal-week-ed-label"><span class="cal-week-ed-dot" style="background:${edColor}"></span>${ed}</div>`;
+
+            for (let d = 0; d < 7; d++) {
+                const dayDate = new Date(this.currentWeekStart);
+                dayDate.setDate(dayDate.getDate() + d);
+                const isToday = dayDate.getTime() === today.getTime();
+                const dayItems = allItems.filter(i => i.date.getTime() === dayDate.getTime() && eds.indexOf(ed) === eds.findIndex(e2 => {
+                    return this._getItemsForRange(dayDate, dayDate, e2).includes(i);
+                }));
+
+                const cellItems = this._getItemsForRange(dayDate, dayDate, ed);
+
+                html += `<div class="cal-week-cell ${isToday ? 'cal-week-today' : ''}">`;
+                cellItems.forEach(item => {
+                    const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#6b7280' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
+                    const done = item.estado === 'Completado';
+                    html += `<div class="cal-week-event ${done ? 'cal-event-done' : ''}" style="--event-color:${color}">
+                        <span class="cal-event-dot" style="background:${color}"></span>
+                        <span>${item.label.substring(0, 18)}${item.label.length > 18 ? '...' : ''}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+
+        html += '<div class="cal-legend">';
+        html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#3b82f6"></span>Tarea</div>';
+        html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#8b5cf6"></span>Visita</div>';
+        html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#ef4444"></span>Incidencia</div>';
+        html += '<div class="cal-legend-item"><span class="cal-legend-dot" style="background:#10b981"></span>Completado</div>';
+        html += '</div>';
+
+        grid.innerHTML = html;
     }
 
     exportCronogramaPDF() {
         const meses = this.data.listas.meses || INITIAL_DATA.meses;
         const eds = this.data.listas.edificios || [];
-        const title = this.cronogramaView === 'monthly' ? `Cronograma - ${meses[this.currentMonth]} ${this.currentYear}` : document.getElementById('currentPeriod').textContent;
+        const title = this.cronogramaView === 'monthly' ? `Cronograma Mensual - ${meses[this.currentMonth]} ${this.currentYear}` : `Cronograma Semanal - ${document.getElementById('currentPeriod').textContent}`;
+        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-        let dateRange;
+        let dateStart, dateEnd;
         if (this.cronogramaView === 'monthly') {
-            dateRange = { start: new Date(this.currentYear, this.currentMonth, 1), end: new Date(this.currentYear, this.currentMonth + 1, 0) };
+            dateStart = new Date(this.currentYear, this.currentMonth, 1);
+            dateEnd = new Date(this.currentYear, this.currentMonth + 1, 0);
         } else {
-            const weekEnd = new Date(this.currentWeekStart);
-            weekEnd.setDate(weekEnd.getDate() + 6);
-            dateRange = { start: new Date(this.currentWeekStart), end: weekEnd };
+            dateStart = new Date(this.currentWeekStart);
+            dateEnd = new Date(this.currentWeekStart);
+            dateEnd.setDate(dateEnd.getDate() + 6);
         }
 
-        const tareas = (this.data.tareas || []).filter(t => { const f = new Date(t.fecha); return f >= dateRange.start && f <= dateRange.end; });
-        const visitas = (this.data.visitas || []).filter(v => { const f = new Date(v.fecha); return f >= dateRange.start && f <= dateRange.end; });
-        const incidencias = (this.data.incidencias || []).filter(i => { const f = new Date(i.fecha); return f >= dateRange.start && f <= dateRange.end; });
+        const allItems = eds.flatMap(ed => this._getItemsForRange(dateStart, dateEnd, ed));
+        const today = new Date();
 
-        let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-            body{font-family:Arial,sans-serif;margin:20px;color:#1e293b}
-            h1{font-size:18px;margin-bottom:4px} h2{font-size:13px;color:#64748b;margin-top:0;margin-bottom:16px}
-            .grid{display:grid;grid-template-columns:repeat(${eds.length},1fr);gap:10px}
-            .col{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;min-height:120px}
-            .col-header{padding:8px 12px;font-weight:700;font-size:12px;color:white}
-            .col-body{padding:8px}
-            .item{border-left:3px solid #ccc;padding:4px 8px;margin-bottom:4px;font-size:10px;background:#f8fafc;border-radius:0 4px 4px 0}
-            .item-tarea{border-left-color:#3b82f6}.item-visita{border-left-color:#8b5cf6}.item-incidencia{border-left-color:#ef4444}
-            .day-label{font-weight:700;font-size:10px;color:#64748b;margin-bottom:4px;margin-top:8px}
-            .empty{color:#94a3b8;font-size:10px;font-style:italic}
-            @media print{body{margin:10px}.grid{gap:6px}}
-        </style></head><body>
-        <h1>${title}</h1>
-        <h2>Facility Management - ${new Date().toLocaleDateString('es-ES')}</h2>
-        <div class="grid">`;
+        let bodyContent = '';
+        if (this.cronogramaView === 'monthly') {
+            const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+            const totalDays = dateEnd.getDate();
+            const startPad = (firstDay.getDay() + 6) % 7;
 
-        eds.forEach(ed => {
-            const edColor = EDIFICIO_COLORS[ed] || '#6b7280';
-            const edTareas = tareas.filter(t => t.edificio === ed);
-            const edVisitas = visitas.filter(v => v.edificio === ed);
-            const edIncidencias = incidencias.filter(i => i.edificio === ed);
-            const allItems = [
-                ...edTareas.map(t => ({ date: new Date(t.fecha), label: t.actividad, type: 'tarea', estado: t.estado })),
-                ...edVisitas.map(v => ({ date: new Date(v.fecha), label: v.motivo, type: 'visita', estado: v.estado })),
-                ...edIncidencias.map(i => ({ date: new Date(i.fecha), label: i.descripcion, type: 'incidencia', estado: i.estado }))
-            ].sort((a, b) => a.date - b.date);
+            bodyContent += `<table class="cal-table"><thead><tr>${['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => `<th>${d}</th>`).join('')}</tr></thead><tbody><tr>`;
+            for (let i = 0; i < startPad; i++) bodyContent += '<td class="empty-cell"></td>';
 
-            html += `<div class="col"><div class="col-header" style="background:${edColor}">${ed}</div><div class="col-body">`;
-            if (allItems.length === 0) {
-                html += '<p class="empty">Sin actividades</p>';
-            } else {
-                if (this.cronogramaView === 'monthly') {
-                    const daysInMonth = dateRange.end.getDate();
-                    for (let day = 1; day <= daysInMonth; day++) {
-                        const dayItems = allItems.filter(i => i.date.getDate() === day);
-                        if (dayItems.length === 0) continue;
-                        html += `<div class="day-label">Día ${day}</div>`;
-                        dayItems.forEach(item => {
-                            html += `<div class="item item-${item.type}">${item.label} ${item.estado === 'Completado' ? '✓' : ''}</div>`;
-                        });
-                    }
-                } else {
-                    const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-                    for (let d = 0; d < 7; d++) {
-                        const dayDate = new Date(this.currentWeekStart);
-                        dayDate.setDate(dayDate.getDate() + d);
-                        const dayItems = allItems.filter(i => i.date.getDate() === dayDate.getDate() && i.date.getMonth() === dayDate.getMonth());
-                        html += `<div class="day-label">${dayNames[d]} ${dayDate.getDate()}</div>`;
-                        if (dayItems.length > 0) {
-                            dayItems.forEach(item => { html += `<div class="item item-${item.type}">${item.label} ${item.estado === 'Completado' ? '✓' : ''}</div>`; });
-                        } else {
-                            html += '<p class="empty">Sin actividades</p>';
-                        }
-                    }
-                }
+            for (let day = 1; day <= totalDays; day++) {
+                const cellDate = new Date(this.currentYear, this.currentMonth, day);
+                const isToday = cellDate.toDateString() === today.toDateString();
+                const dayItems = allItems.filter(i => i.date.getDate() === day);
+                bodyContent += `<td class="${isToday ? 'today-cell' : ''}"><div class="cell-day ${dayItems.length ? 'has-items' : ''}">${day}</div>`;
+                dayItems.forEach(item => {
+                    const color = item.type === 'tarea' ? '#3b82f6' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
+                    const done = item.estado === 'Completado' ? ' ✓' : '';
+                    bodyContent += `<div class="cell-event" style="border-left-color:${color}">${item.label.substring(0, 22)}${done}</div>`;
+                });
+                bodyContent += '</td>';
+                if ((startPad + day) % 7 === 0 && day < totalDays) bodyContent += '</tr><tr>';
             }
-            html += '</div></div>';
-        });
+            const endPad = (7 - ((startPad + totalDays) % 7)) % 7;
+            for (let i = 0; i < endPad; i++) bodyContent += '<td class="empty-cell"></td>';
+            bodyContent += '</tr></tbody></table>';
+        } else {
+            const dayNamesFull = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+            bodyContent += `<table class="cal-table weekly-table"><thead><tr><th style="width:120px">Edificio</th>${dayNamesFull.map((d, i) => {
+                const dd = new Date(this.currentWeekStart); dd.setDate(dd.getDate() + i);
+                const isT = dd.toDateString() === today.toDateString();
+                return `<th class="${isT ? 'today-header' : ''}">${d} ${dd.getDate()}</th>`;
+            }).join('')}</tr></thead><tbody>`;
+            eds.forEach(ed => {
+                const edColor = EDIFICIO_COLORS[ed] || '#6b7280';
+                bodyContent += `<tr><td class="ed-label" style="border-left:4px solid ${edColor};font-weight:700">${ed}</td>`;
+                for (let d = 0; d < 7; d++) {
+                    const dd = new Date(this.currentWeekStart); dd.setDate(dd.getDate() + d);
+                    const cellItems = this._getItemsForRange(dd, dd, ed);
+                    const isT = dd.toDateString() === today.toDateString();
+                    bodyContent += `<td class="${isT ? 'today-cell' : ''}">`;
+                    cellItems.forEach(item => {
+                        const color = item.type === 'tarea' ? '#3b82f6' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
+                        const done = item.estado === 'Completado' ? ' ✓' : '';
+                        bodyContent += `<div class="cell-event" style="border-left-color:${color}">${item.label.substring(0, 20)}${done}</div>`;
+                    });
+                    bodyContent += '</td>';
+                }
+                bodyContent += '</tr>';
+            });
+            bodyContent += '</tbody></table>';
+        }
 
-        html += '</div></body></html>';
-
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(html);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => { printWindow.print(); }, 500);
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+            *{margin:0;padding:0;box-sizing:border-box}
+            body{font-family:Arial,Helvetica,sans-serif;padding:25px;color:#1e293b}
+            .header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1e40af;padding-bottom:10px;margin-bottom:16px}
+            h1{font-size:20px;color:#1e40af} .date{font-size:11px;color:#64748b}
+            .cal-table{width:100%;border-collapse:collapse;table-layout:fixed}
+            .cal-table th{background:#1e40af;color:white;padding:8px 4px;font-size:10px;text-transform:uppercase;letter-spacing:0.5px}
+            .cal-table td{border:1px solid #e2e8f0;vertical-align:top;padding:3px;height:70px;width:14.28%}
+            .empty-cell{background:#f8fafc}
+            .today-cell{background:#eff6ff}
+            .today-header{background:#1e3a8a}
+            .cell-day{font-size:12px;font-weight:700;color:#475569;margin-bottom:3px}
+            .cell-day.has-items{color:#1e293b}
+            .cell-event{font-size:8px;padding:2px 4px;margin:1px 0;border-left:2px solid #ccc;background:#f8fafc;border-radius:0 3px 3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            .weekly-table td{height:60px}
+            .ed-label{font-size:10px;padding:4px 8px}
+            .legend{display:flex;gap:14px;margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0}
+            .legend-item{display:flex;align-items:center;gap:4px;font-size:9px;color:#64748b}
+            .legend-dot{width:8px;height:8px;border-radius:50%}
+            @media print{body{padding:15px}.cal-table td{height:65px}}
+        </style></head><body>
+            <div class="header"><div><h1>${title}</h1><div class="date">Facility Management · ${today.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div></div></div>
+            ${bodyContent}
+            <div class="legend">
+                <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>Tarea</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#8b5cf6"></span>Visita</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>Incidencia</div>
+                ${eds.map(ed => `<div class="legend-item"><span class="legend-dot" style="background:${EDIFICIO_COLORS[ed] || '#6b7280'}"></span>${ed}</div>`).join('')}
+            </div>
+        </body></html>`;
+        const w = window.open('', '_blank');
+        w.document.write(html);
+        w.document.close();
+        setTimeout(() => w.print(), 500);
     }
 
     // =================== CARTA GANTT ===================

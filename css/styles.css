@@ -379,13 +379,21 @@ body {
 }
 .filter-select:focus, .filter-input:focus { outline: none; border-color: var(--primary-light); }
 
-.view-toggle { display: flex; gap: 4px; }
-.view-btn {
-    padding: 6px 10px; border: 1px solid var(--border);
-    background: var(--bg-card); border-radius: var(--radius-sm);
-    cursor: pointer; transition: var(--transition); font-size: 0.85rem;
+.view-toggle { display: flex; background: var(--bg-main); border-radius: var(--radius-sm); border: 1px solid var(--border); overflow: hidden; }
+.view-toggle-btn {
+    padding: 6px 14px; border: none;
+    background: transparent; cursor: pointer; transition: var(--transition);
+    font-size: 0.8rem; font-weight: 500; color: var(--text-secondary);
+    display: flex; align-items: center; gap: 5px;
 }
-.view-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+.view-toggle-btn:hover { color: var(--text-primary); background: var(--border-light); }
+.view-toggle-btn.active { background: var(--primary); color: white; }
+
+#exportCronogramaPDF {
+    margin-left: 8px;
+}
+
+.cronograma-controls { display: flex; align-items: center; gap: 0.75rem; }
 
 /* =================== PROVIDERS =================== */
 .providers-grid {
@@ -819,123 +827,59 @@ body {
     margin-right: 6px;
 }
 
-/* =================== CRONOGRAMA =================== */
-.cronograma-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-    min-height: 500px;
-}
+/* =================== CRONOGRAMA CALENDARIO =================== */
+.cal-monthly { background: var(--bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); overflow: hidden; }
+.cal-header-row { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--primary); }
+.cal-header-cell { padding: 10px 4px; text-align: center; font-size: 0.8rem; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cal-cell { min-height: 110px; border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); padding: 4px; transition: background 0.15s; }
+.cal-cell:nth-child(7n) { border-right: none; }
+.cal-cell:hover { background: var(--bg-hover); }
+.cal-cell-empty { background: #f8fafc; opacity: 0.4; }
+.cal-weekend { background: #fafbfd; }
+.cal-today { background: rgba(30, 64, 175, 0.05); }
+.cal-day-header { display: flex; justify-content: flex-start; margin-bottom: 3px; }
+.cal-day-num { font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+.cal-day-today { background: var(--primary); color: white; }
+.cal-day-items { display: flex; flex-direction: column; gap: 2px; }
+.cal-event { display: flex; align-items: center; gap: 5px; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 500; background: var(--bg-main); border-left: 3px solid var(--event-color); cursor: default; transition: transform 0.15s; }
+.cal-event:hover { transform: scale(1.02); }
+.cal-event-done { opacity: 0.45; }
+.cal-event-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.cal-event-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-more { font-size: 0.65rem; color: var(--primary); font-weight: 600; padding: 2px 6px; cursor: pointer; }
 
-.cronograma-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
+.cal-weekly { background: var(--bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); overflow: hidden; }
+.cal-week-header { display: grid; grid-template-columns: 140px repeat(7, 1fr); border-bottom: 2px solid var(--primary); }
+.cal-week-sidebar-spacer { background: var(--primary); }
+.cal-week-day-header { display: flex; flex-direction: column; align-items: center; padding: 8px 4px; background: var(--primary); gap: 2px; }
+.cal-week-day-name { font-size: 0.65rem; font-weight: 600; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.5px; }
+.cal-week-day-num { font-size: 1.1rem; font-weight: 700; color: white; }
+.cal-week-day-today { background: white; color: var(--primary); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+.cal-week-today-header { background: var(--primary-dark); }
 
-.view-toggle {
-    display: flex;
-    background: var(--bg-main);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-    overflow: hidden;
-}
+.cal-week-body { }
+.cal-week-building { display: grid; grid-template-columns: 140px repeat(7, 1fr); border-bottom: 1px solid var(--border-light); min-height: 60px; }
+.cal-week-building:last-child { border-bottom: none; }
+.cal-week-ed-label { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 0.8rem; font-weight: 700; color: var(--text-primary); background: var(--bg-main); border-right: 1px solid var(--border-light); }
+.cal-week-ed-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.cal-week-cell { padding: 4px; border-right: 1px solid var(--border-light); min-height: 60px; }
+.cal-week-cell:last-child { border-right: none; }
+.cal-week-today { background: rgba(30, 64, 175, 0.04); }
+.cal-week-event { display: flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 5px; font-size: 0.72rem; font-weight: 500; background: var(--bg-main); border-left: 3px solid var(--event-color); margin-bottom: 3px; transition: transform 0.15s; }
+.cal-week-event:hover { transform: scale(1.02); }
+.cal-week-event.cal-event-done { opacity: 0.45; }
 
-.view-toggle-btn {
-    padding: 0.4rem 0.85rem;
-    border: none;
-    background: transparent;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
+.cal-legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 16px; background: var(--bg-main); border-top: 1px solid var(--border-light); }
+.cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 500; color: var(--text-secondary); }
+.cal-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-.view-toggle-btn:hover { color: var(--text-primary); }
-.view-toggle-btn.active { background: var(--primary); color: white; }
-
-.cronograma-col {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-light);
-    overflow: hidden;
-}
-
-.cronograma-col-header {
-    padding: 0.75rem 1rem;
-    border-bottom: 3px solid;
-    background: var(--bg-main);
-}
-
-.cronograma-col-header h4 {
-    font-size: 0.9rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-}
-
-.cronograma-col-body {
-    padding: 0.5rem;
-    max-height: 500px;
-    overflow-y: auto;
-}
-
-.crono-day {
-    margin-bottom: 0.5rem;
-}
-
-.crono-day-num {
-    display: inline-block;
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    margin-bottom: 4px;
-    padding: 2px 6px;
-    background: var(--bg-main);
-    border-radius: 4px;
-}
-
-.crono-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 8px;
-    border-left: 3px solid;
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-    background: var(--bg-main);
-    margin-bottom: 3px;
-    font-size: 0.75rem;
-    transition: var(--transition);
-}
-
-.crono-item:hover { background: var(--border); }
-.crono-item-done { opacity: 0.5; text-decoration: line-through; }
-.crono-item i { font-size: 0.65rem; flex-shrink: 0; }
-.crono-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.crono-today { background: rgba(30, 64, 175, 0.06); border-radius: var(--radius-sm); }
-.crono-today .crono-day-num { background: var(--primary); color: white; }
-.crono-empty-day { color: var(--text-muted); font-style: italic; border-left-color: var(--border) !important; }
-
-.crono-empty {
-    text-align: center;
-    padding: 2rem 1rem;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-}
-
-@media (max-width: 1024px) {
-    .cronograma-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 600px) {
-    .cronograma-grid { grid-template-columns: 1fr; }
-    .cronograma-controls { flex-wrap: wrap; }
+@media (max-width: 768px) {
+    .cal-cell { min-height: 70px; }
+    .cal-event-text { font-size: 0.6rem; }
+    .cal-week-header { grid-template-columns: 100px repeat(7, 1fr); }
+    .cal-week-building { grid-template-columns: 100px repeat(7, 1fr); }
+    .cal-week-ed-label { font-size: 0.7rem; padding: 6px 8px; }
 }
 
 /* =================== CARTA GANTT =================== */
