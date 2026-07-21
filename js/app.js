@@ -357,7 +357,21 @@ class MaintenanceApp {
     async saveTarea(id = null) {
         try {
             const d = { actividad: this.gv('tareaActividad'), categoria: this.gv('tareaCategoria'), edificio: this.gv('tareaEdificio'), ubicacion: this.gv('tareaUbicacion'), proveedor: this.gv('tareaProveedor'), fecha: this.gv('tareaFecha'), estado: this.gv('tareaEstado'), observaciones: this.gv('tareaObservaciones') };
-            if (id) { const i = this.data.tareas.findIndex(t => t.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); this.data.tareas[i] = { ...this.data.tareas[i], ...d }; await db.put('tareas', this.data.tareas[i]); } }
+            if (id) {
+                const i = this.data.tareas.findIndex(t => t.id === id);
+                if (i !== -1) {
+                    const existing = this.data.tareas[i];
+                    d.id = id;
+                    d.updatedAt = new Date().toISOString();
+                    if (d.estado === 'Completado' && existing.estado !== 'Completado') {
+                        d.fechaCompletado = new Date().toISOString().split('T')[0];
+                    }
+                    if (existing.createdAt) d.createdAt = existing.createdAt;
+                    if (existing.emails) d.emails = existing.emails;
+                    this.data.tareas[i] = { ...existing, ...d };
+                    await db.put('tareas', this.data.tareas[i]);
+                }
+            }
             else {
                 d.id = 'TAR-' + Date.now(); d.createdAt = new Date().toISOString(); d.emails = [];
                 if (d.proveedor) {
@@ -447,7 +461,23 @@ class MaintenanceApp {
         try {
             const checklist = [...document.querySelectorAll('.visita-checklist:checked')].map(cb => cb.value);
             const d = { fecha: this.gv('visitaFecha'), edificio: this.gv('visitaEdificio'), tipo: this.gv('visitaTipo'), motivo: this.gv('visitaMotivo'), proveedor: this.gv('visitaProveedor'), estado: this.gv('visitaEstado'), observaciones: this.gv('visitaObservaciones'), responsable: '', checklist };
-            if (id) { const i = this.data.visitas.findIndex(v => v.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); this.data.visitas[i] = { ...this.data.visitas[i], ...d }; await db.put('visitas', this.data.visitas[i]); } }
+            if (id) {
+                const i = this.data.visitas.findIndex(v => v.id === id);
+                if (i !== -1) {
+                    const existing = this.data.visitas[i];
+                    d.id = id;
+                    d.updatedAt = new Date().toISOString();
+                    if (d.estado === 'Completado' && existing.estado !== 'Completado') {
+                        d.fechaCompletado = new Date().toISOString().split('T')[0];
+                    }
+                    if (existing.fecha) d.fecha = existing.fecha;
+                    if (existing.createdAt) d.createdAt = existing.createdAt;
+                    if (existing.emails) d.emails = existing.emails;
+                    if (existing.checklistResults) d.checklistResults = existing.checklistResults;
+                    this.data.visitas[i] = { ...existing, ...d };
+                    await db.put('visitas', this.data.visitas[i]);
+                }
+            }
             else {
                 d.id = 'VIS-' + Date.now(); d.createdAt = new Date().toISOString(); d.emails = [];
                 if (d.proveedor) {
@@ -740,15 +770,18 @@ class MaintenanceApp {
         const incidencias = (this.data.incidencias || []).filter(i => i.edificio === edificio);
         const result = [];
         tareas.forEach(t => {
-            const f = new Date(t.fecha + 'T00:00:00');
+            const isDone = t.estado === 'Completado';
+            const f = new Date((isDone && t.fechaCompletado ? t.fechaCompletado : t.fecha) + 'T00:00:00');
             if (f >= start && f <= end) result.push({ date: f, label: t.actividad, cat: t.categoria, type: 'tarea', estado: t.estado, edificio });
         });
         visitas.forEach(v => {
-            const f = new Date(v.fecha + 'T00:00:00');
+            const isDone = v.estado === 'Completado';
+            const f = new Date((isDone && v.fechaCompletado ? v.fechaCompletado : v.fecha) + 'T00:00:00');
             if (f >= start && f <= end) result.push({ date: f, label: v.motivo, cat: v.tipo, type: 'visita', estado: v.estado, edificio });
         });
         incidencias.forEach(i => {
-            const f = new Date(i.fecha + 'T00:00:00');
+            const isDone = i.estado === 'Completado';
+            const f = new Date((isDone && i.fechaCompletado ? i.fechaCompletado : i.fecha) + 'T00:00:00');
             if (f >= start && f <= end) result.push({ date: f, label: i.descripcion, cat: i.categoria, type: 'incidencia', estado: i.estado, edificio });
         });
         return result;
@@ -1255,7 +1288,22 @@ class MaintenanceApp {
     async saveIncidencia(id = null) {
         try {
             const d = { fecha: new Date().toISOString().split('T')[0], edificio: this.gv('incEdificio'), descripcion: this.gv('incDescripcion'), categoria: this.gv('incCategoria'), ubicacion: this.gv('incUbicacion'), prioridad: this.gv('incPrioridad'), proveedor: this.gv('incProveedor'), estado: this.gv('incEstado'), observaciones: this.gv('incObservaciones'), fotos: [] };
-            if (id) { const i = this.data.incidencias.findIndex(x => x.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); this.data.incidencias[i] = { ...this.data.incidencias[i], ...d }; await db.put('incidencias', this.data.incidencias[i]); } }
+            if (id) {
+                const i = this.data.incidencias.findIndex(x => x.id === id);
+                if (i !== -1) {
+                    const existing = this.data.incidencias[i];
+                    d.id = id;
+                    d.updatedAt = new Date().toISOString();
+                    if (d.estado === 'Completado' && existing.estado !== 'Completado') {
+                        d.fechaCompletado = new Date().toISOString().split('T')[0];
+                    }
+                    if (existing.fecha) d.fecha = existing.fecha;
+                    if (existing.createdAt) d.createdAt = existing.createdAt;
+                    if (existing.emails) d.emails = existing.emails;
+                    this.data.incidencias[i] = { ...existing, ...d };
+                    await db.put('incidencias', this.data.incidencias[i]);
+                }
+            }
             else {
                 d.id = 'INC-' + Date.now();
                 d.createdAt = new Date().toISOString();
