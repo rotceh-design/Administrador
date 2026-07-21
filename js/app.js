@@ -437,22 +437,22 @@ class MaintenanceApp {
             const dayItems = allItems.filter(i => i.date.getDate() === day);
 
             html += `<div class="cal-cell ${isToday ? 'cal-today' : ''} ${isWeekend ? 'cal-weekend' : ''}">
-                <div class="cal-day-header"><span class="cal-day-num ${isToday ? 'cal-day-today' : ''}">${day}</span></div>
+                <div class="cal-day-header"><span class="cal-day-num ${isToday ? 'cal-day-today' : ''}">${day}</span>${dayItems.length ? `<span class="cal-day-count">${dayItems.length}</span>` : ''}</div>
                 <div class="cal-day-items">`;
 
-            dayItems.slice(0, 4).forEach(item => {
-                const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#6b7280' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
-                const edColor = getEdificioColor(eds.find(ed => this._getItemsForRange(cellDate, cellDate, ed).includes(item)), eds);
-                const icon = item.type === 'tarea' ? 'fa-check-square' : item.type === 'visita' ? 'fa-calendar-check' : 'fa-exclamation-circle';
+            dayItems.slice(0, 6).forEach(item => {
+                const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#3b82f6' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
+                const icon = item.type === 'tarea' ? 'fa-check-square' : item.type === 'visita' ? 'fa-calendar-day' : 'fa-exclamation-triangle';
                 const done = item.estado === 'Completado';
+                const typeLabel = item.type === 'tarea' ? 'T' : item.type === 'visita' ? 'V' : 'I';
                 html += `<div class="cal-event ${done ? 'cal-event-done' : ''}" style="--event-color:${color}">
-                    <span class="cal-event-dot" style="background:${color}"></span>
-                    <span class="cal-event-text">${item.label.substring(0, 20)}${item.label.length > 20 ? '...' : ''}</span>
+                    <span class="cal-event-icon" style="background:${color}"><i class="fas ${icon}"></i></span>
+                    <span class="cal-event-text">${item.label}</span>
                 </div>`;
             });
 
-            if (dayItems.length > 4) {
-                html += `<div class="cal-more">+${dayItems.length - 4} más</div>`;
+            if (dayItems.length > 6) {
+                html += `<div class="cal-more">+${dayItems.length - 6} más</div>`;
             }
 
             html += '</div></div>';
@@ -518,11 +518,12 @@ class MaintenanceApp {
 
                 html += `<div class="cal-week-cell ${isToday ? 'cal-week-today' : ''}">`;
                 cellItems.forEach(item => {
-                    const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#6b7280' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
+                    const color = item.type === 'tarea' ? CATEGORY_COLORS[item.cat] || '#3b82f6' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
+                    const icon = item.type === 'tarea' ? 'fa-check-square' : item.type === 'visita' ? 'fa-calendar-day' : 'fa-exclamation-triangle';
                     const done = item.estado === 'Completado';
                     html += `<div class="cal-week-event ${done ? 'cal-event-done' : ''}" style="--event-color:${color}">
-                        <span class="cal-event-dot" style="background:${color}"></span>
-                        <span>${item.label.substring(0, 18)}${item.label.length > 18 ? '...' : ''}</span>
+                        <span class="cal-event-icon" style="background:${color}"><i class="fas ${icon}"></i></span>
+                        <span class="cal-week-event-text">${item.label}</span>
                     </div>`;
                 });
                 html += '</div>';
@@ -576,8 +577,9 @@ class MaintenanceApp {
                 bodyContent += `<td class="${isToday ? 'today-cell' : ''}"><div class="cell-day ${dayItems.length ? 'has-items' : ''}">${day}</div>`;
                 dayItems.forEach(item => {
                     const color = item.type === 'tarea' ? '#3b82f6' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
+                    const icon = item.type === 'tarea' ? '■' : item.type === 'visita' ? '●' : '▲';
                     const done = item.estado === 'Completado' ? ' ✓' : '';
-                    bodyContent += `<div class="cell-event" style="border-left-color:${color}">${item.label.substring(0, 22)}${done}</div>`;
+                    bodyContent += `<div class="cell-event" style="border-left-color:${color}"><span class="ev-icon" style="color:${color}">${icon}</span> ${item.label}${done}</div>`;
                 });
                 bodyContent += '</td>';
                 if ((startPad + day) % 7 === 0 && day < totalDays) bodyContent += '</tr><tr>';
@@ -602,8 +604,9 @@ class MaintenanceApp {
                     bodyContent += `<td class="${isT ? 'today-cell' : ''}">`;
                     cellItems.forEach(item => {
                         const color = item.type === 'tarea' ? '#3b82f6' : item.type === 'visita' ? '#8b5cf6' : '#ef4444';
+                        const icon = item.type === 'tarea' ? '■' : item.type === 'visita' ? '●' : '▲';
                         const done = item.estado === 'Completado' ? ' ✓' : '';
-                        bodyContent += `<div class="cell-event" style="border-left-color:${color}">${item.label.substring(0, 20)}${done}</div>`;
+                        bodyContent += `<div class="cell-event" style="border-left-color:${color}"><span class="ev-icon" style="color:${color}">${icon}</span> ${item.label}${done}</div>`;
                     });
                     bodyContent += '</td>';
                 }
@@ -625,7 +628,8 @@ class MaintenanceApp {
             .today-header{background:#1e3a8a}
             .cell-day{font-size:12px;font-weight:700;color:#475569;margin-bottom:3px}
             .cell-day.has-items{color:#1e293b}
-            .cell-event{font-size:8px;padding:2px 4px;margin:1px 0;border-left:2px solid #ccc;background:#f8fafc;border-radius:0 3px 3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+            .cell-event{font-size:8.5px;padding:2px 5px;margin:1px 0;border-left:3px solid #ccc;background:#f8fafc;border-radius:0 3px 3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+            .ev-icon{font-size:7px;margin-right:2px}
             .weekly-table td{height:60px}
             .ed-label{font-size:10px;padding:4px 8px}
             .legend{display:flex;gap:14px;margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0}
