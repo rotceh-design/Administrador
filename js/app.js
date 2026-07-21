@@ -452,113 +452,126 @@ class MaintenanceApp {
     getInspeccionForm(v) {
         const saved = v.checklistResults || {};
         const cats = v.checklist || [];
-        if (!cats.length) return '<p style="color:#64748b">No hay categorías asignadas.</p>';
+        if (!cats.length) return '<p style="color:#64748b;text-align:center;padding:20px">No hay categorías asignadas.</p>';
 
-        const catTabsHTML = cats.map((cat, i) => {
+        const totalItems = cats.reduce((sum, cat) => {
             const catData = CHECKLIST_CATEGORIES[cat];
-            if (!catData) return '';
-            const hasResults = saved[cat]?.items?.some(it => it.status);
-            const color = catData.color;
-            return `<button type="button" class="insp-cat-tab ${i === 0 ? 'active' : ''}" data-cat="${cat}" style="background:${i === 0 ? color : '#f1f5f9'};color:${i === 0 ? '#fff' : '#64748b'};border:1px solid ${i === 0 ? color : '#e2e8f0'};padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;transition:all 0.2s">
-                <i class="fas ${catData.icon}"></i> ${cat}
-                ${hasResults ? '<span style="width:8px;height:8px;background:#22c55e;border-radius:50%;margin-left:auto"></span>' : ''}
-            </button>`;
+            return sum + (catData ? catData.items.length : 0);
+        }, 0);
+        let doneCount = 0;
+        cats.forEach(cat => {
+            const si = saved[cat]?.items || [];
+            si.forEach(it => { if (it.status === 'pass' || it.status === 'fail') doneCount++; });
+        });
+
+        const dotsHTML = cats.map((cat, i) => {
+            const catData = CHECKLIST_CATEGORIES[cat];
+            const hasResults = saved[cat]?.items?.some(it => it.status === 'pass' || it.status === 'fail');
+            return `<button type="button" class="insp-dot" data-idx="${i}" style="width:10px;height:10px;border-radius:50%;border:none;background:${i === 0 ? (catData?.color || '#3b82f6') : (hasResults ? '#22c55e' : '#cbd5e1')};cursor:pointer;transition:all 0.2s;padding:0"></button>`;
         }).join('');
 
-        const panelsHTML = cats.map((cat, i) => {
+        const cardsHTML = cats.map((cat, i) => {
             const catData = CHECKLIST_CATEGORIES[cat];
             if (!catData) return '';
             const items = catData.items || [];
             const savedItems = saved[cat]?.items || [];
             const catObs = saved[cat]?.catObs || '';
+            const color = catData.color;
 
-            const rows = items.map((itemName, j) => {
+            const passCount = savedItems.filter(it => it.status === 'pass').length;
+            const failCount = savedItems.filter(it => it.status === 'fail').length;
+            const totalCount = items.length;
+
+            const itemsHTML = items.map((itemName, j) => {
                 const s = savedItems.find(si => si.name === itemName);
                 const status = s?.status || '';
                 const obs = s?.obs || '';
-                const passMark = status === 'pass' ? '✓' : '☐';
-                        const failMark = status === 'fail' ? '✗' : '☐';
-                        const passColor = status === 'pass' ? '#22c55e' : '#e2e8f0';
-                        const failColor = status === 'fail' ? '#ef4444' : '#e2e8f0';
-                        const passBg = status === 'pass' ? '#dcfce7' : '#fff';
-                        const failBg = status === 'fail' ? '#fef2f2' : '#fff';
-                        const passTxt = status === 'pass' ? '#16a34a' : '#cbd5e1';
-                        const failTxt = status === 'fail' ? '#dc2626' : '#cbd5e1';
-                        return `<tr style="background:${j % 2 === 0 ? '#fff' : '#f8fafc'}">
-                    <td style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#334155;width:30px;text-align:center;color:#94a3b8">${j + 1}</td>
-                    <td style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#334155;font-weight:500">${itemName}</td>
-                    <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:center">
-                        <button type="button" class="insp-btn-insp" data-cat="${cat}" data-item="${j}" data-status="pass" data-selected="${status === 'pass' ? 'true' : 'false'}" style="width:36px;height:36px;border-radius:8px;border:2px solid ${passColor};background:${passBg};cursor:pointer;font-size:18px;color:${passTxt};transition:all 0.15s;display:inline-flex;align-items:center;justify-content:center">✓</button>
-                        <button type="button" class="insp-btn-insp" data-cat="${cat}" data-item="${j}" data-status="fail" data-selected="${status === 'fail' ? 'true' : 'false'}" style="width:36px;height:36px;border-radius:8px;border:2px solid ${failColor};background:${failBg};cursor:pointer;font-size:18px;color:${failTxt};margin-left:4px;transition:all 0.15s;display:inline-flex;align-items:center;justify-content:center">✗</button>
-                    </td>
-                    <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0"><input type="text" class="insp-obs" data-cat="${cat}" data-item="${j}" value="${this.escapeHtml(obs)}" placeholder="Observaciones..." style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:12px;color:#334155;outline:none"></td>
-                </tr>`;
+                const passBg = status === 'pass' ? '#22c55e' : '#f1f5f9';
+                const passBorder = status === 'pass' ? '#22c55e' : '#e2e8f0';
+                const passText = status === 'pass' ? '#fff' : '#94a3b8';
+                const failBg = status === 'fail' ? '#ef4444' : '#f1f5f9';
+                const failBorder = status === 'fail' ? '#ef4444' : '#e2e8f0';
+                const failText = status === 'fail' ? '#fff' : '#94a3b8';
+                return `<div style="background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid #e2e8f0">
+                    <div style="font-size:14px;font-weight:600;color:#1e293b;margin-bottom:10px">${itemName}</div>
+                    <div style="display:flex;gap:10px;margin-bottom:10px">
+                        <button type="button" class="insp-btn-insp" data-cat="${cat}" data-item="${j}" data-status="pass" data-selected="${status === 'pass' ? 'true' : 'false'}" style="flex:1;height:52px;border-radius:10px;border:2px solid ${passBorder};background:${passBg};cursor:pointer;font-size:20px;font-weight:700;color:${passText};transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:6px">✓ OK</button>
+                        <button type="button" class="insp-btn-insp" data-cat="${cat}" data-item="${j}" data-status="fail" data-selected="${status === 'fail' ? 'true' : 'false'}" style="flex:1;height:52px;border-radius:10px;border:2px solid ${failBorder};background:${failBg};cursor:pointer;font-size:20px;font-weight:700;color:${failText};transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:6px">✗ Falla</button>
+                    </div>
+                    <input type="text" class="insp-obs" data-cat="${cat}" data-item="${j}" value="${this.escapeHtml(obs)}" placeholder="Observaciones..." style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:14px;color:#334155;outline:none;box-sizing:border-box">
+                </div>`;
             }).join('');
 
-            return `<div class="insp-panel" data-cat="${cat}" style="display:${i === 0 ? 'block' : 'none'}">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:${catData.color}10;border-radius:10px;border:1px solid ${catData.color}30">
-                    <i class="fas ${catData.icon}" style="color:${catData.color};font-size:18px"></i>
-                    <div>
-                        <div style="font-size:14px;font-weight:700;color:${catData.color}">${cat}</div>
-                        <div style="font-size:11px;color:#64748b">${items.length} items a inspeccionar</div>
+            return `<div class="insp-card" data-cat="${cat}" data-idx="${i}" style="display:${i === 0 ? 'block' : 'none'};min-width:100%">
+                <div style="background:${color};border-radius:16px;padding:16px 18px;margin-bottom:14px;color:#fff">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                        <i class="fas ${catData.icon}" style="font-size:20px"></i>
+                        <div style="font-size:18px;font-weight:700">${cat}</div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;opacity:0.9">
+                        <span>${totalCount} items</span>
+                        <span>${passCount} ✓ ${failCount > 0 ? ' · ' + failCount + ' ✗' : ''}</span>
                     </div>
                 </div>
-                <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
-                    <thead><tr style="background:#f1f5f9">
-                        <th style="padding:8px;font-size:11px;font-weight:600;color:#64748b;text-align:center;width:30px">#</th>
-                        <th style="padding:8px;font-size:11px;font-weight:600;color:#64748b;text-align:left">Item</th>
-                        <th style="padding:8px;font-size:11px;font-weight:600;color:#64748b;text-align:center;width:100px">Estado</th>
-                        <th style="padding:8px;font-size:11px;font-weight:600;color:#64748b;text-align:left">Observaciones</th>
-                    </tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
-                <div style="margin-top:10px">
-                    <label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:4px">Observaciones de la categoría:</label>
-                    <textarea class="insp-cat-obs" data-cat="${cat}" rows="2" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:12px;color:#334155;outline:none;resize:vertical">${this.escapeHtml(catObs)}</textarea>
+                ${itemsHTML}
+                <div style="margin-top:6px">
+                    <textarea class="insp-cat-obs" data-cat="${cat}" rows="2" placeholder="Observaciones generales de ${cat}..." style="width:100%;border:1px solid #e2e8f0;border-radius:10px;padding:12px;font-size:14px;color:#334155;outline:none;resize:none;box-sizing:border-box">${this.escapeHtml(catObs)}</textarea>
                 </div>
             </div>`;
         }).join('');
 
-        return `<div style="display:flex;gap:16px;min-height:420px">
-            <div style="width:220px;flex-shrink:0;display:flex;flex-direction:column;gap:6px">
-                <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Categorías</div>
-                ${catTabsHTML}
+        return `<div style="max-width:100%;overflow:hidden">
+            <div style="text-align:center;margin-bottom:12px">
+                <div style="font-size:13px;color:#64748b;margin-bottom:6px">${doneCount} de ${totalItems} items completados</div>
+                <div style="display:flex;justify-content:center;gap:6px;align-items:center">${dotsHTML}</div>
             </div>
-            <div style="flex:1;overflow-y:auto;max-height:500px;padding-right:4px">
-                ${panelsHTML}
+            <div style="position:relative;overflow:hidden" id="inspCardsContainer">
+                ${cardsHTML}
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:14px">
+                <button type="button" id="inspPrev" style="padding:12px 20px;border-radius:10px;border:1px solid #e2e8f0;background:#fff;color:#64748b;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">← Anterior</button>
+                <button type="button" id="inspNext" style="padding:12px 20px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">Siguiente →</button>
             </div>
         </div>
         <script>
-        document.querySelectorAll('.insp-cat-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.insp-cat-tab').forEach(t => { t.style.background = '#f1f5f9'; t.style.color = '#64748b'; t.style.borderColor = '#e2e8f0'; t.classList.remove('active'); });
-                document.querySelectorAll('.insp-panel').forEach(p => p.style.display = 'none');
-                const cat = this.dataset.cat;
-                const catData = CHECKLIST_CATEGORIES[cat];
-                this.style.background = catData ? catData.color : '#3b82f6';
-                this.style.color = '#fff';
-                this.style.borderColor = catData ? catData.color : '#3b82f6';
-                this.classList.add('active');
-                document.querySelector('.insp-panel[data-cat="' + cat + '"]').style.display = 'block';
-            });
-        });
-        document.querySelectorAll('.insp-btn-insp').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const cat = this.dataset.cat, item = this.dataset.item, status = this.dataset.status;
-                const siblings = document.querySelectorAll('.insp-btn-insp[data-cat="' + cat + '"][data-item="' + item + '"]');
-                siblings.forEach(s => {
-                    s.style.borderColor = '#e2e8f0';
-                    s.style.background = '#fff';
-                    s.style.color = '#cbd5e1';
-                    s.dataset.selected = 'false';
+        (function() {
+            let current = 0;
+            const total = ${cats.length};
+            const cats = ${JSON.stringify(cats)};
+            function showCard(idx) {
+                document.querySelectorAll('.insp-card').forEach(c => c.style.display = 'none');
+                const card = document.querySelector('.insp-card[data-idx="' + idx + '"]');
+                if (card) card.style.display = 'block';
+                document.querySelectorAll('.insp-dot').forEach((d, i) => {
+                    d.style.transform = i === idx ? 'scale(1.4)' : 'scale(1)';
+                    if (i === idx) { d.style.background = CHECKLIST_CATEGORIES[cats[i]]?.color || '#3b82f6'; }
                 });
-                const catData = CHECKLIST_CATEGORIES[cat];
-                const color = catData ? catData.color : '#3b82f6';
-                if (status === 'pass') { this.style.borderColor = '#22c55e'; this.style.background = '#dcfce7'; this.style.color = '#16a34a'; }
-                else { this.style.borderColor = '#ef4444'; this.style.background = '#fef2f2'; this.style.color = '#dc2626'; }
-                this.dataset.selected = 'true';
+                document.getElementById('inspPrev').style.visibility = idx === 0 ? 'hidden' : 'visible';
+                const nextBtn = document.getElementById('inspNext');
+                if (idx === total - 1) { nextBtn.textContent = '✓ Guardar'; nextBtn.style.background = '#22c55e'; }
+                else { nextBtn.innerHTML = 'Siguiente →'; nextBtn.style.background = '#3b82f6'; }
+            }
+            document.getElementById('inspPrev').addEventListener('click', () => { if (current > 0) { current--; showCard(current); } });
+            document.getElementById('inspNext').addEventListener('click', () => {
+                if (current < total - 1) { current++; showCard(current); }
+                else { document.querySelector('#modalSave').click(); }
             });
-        });
+            document.querySelectorAll('.insp-dot').forEach(dot => {
+                dot.addEventListener('click', function() { current = parseInt(this.dataset.idx); showCard(current); });
+            });
+            document.querySelectorAll('.insp-btn-insp').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const cat = this.dataset.cat, item = this.dataset.item;
+                    document.querySelectorAll('.insp-btn-insp[data-cat="' + cat + '"][data-item="' + item + '"]').forEach(b => {
+                        b.style.background = '#f1f5f9'; b.style.borderColor = '#e2e8f0'; b.style.color = '#94a3b8'; b.dataset.selected = 'false';
+                    });
+                    if (this.dataset.status === 'pass') { this.style.background = '#22c55e'; this.style.borderColor = '#22c55e'; this.style.color = '#fff'; }
+                    else { this.style.background = '#ef4444'; this.style.borderColor = '#ef4444'; this.style.color = '#fff'; }
+                    this.dataset.selected = 'true';
+                });
+            });
+            showCard(0);
+        })();
         </script>`;
     }
 
