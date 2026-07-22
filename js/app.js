@@ -422,7 +422,7 @@ class MaintenanceApp {
                 <td><span style="color:${CATEGORY_COLORS[t.categoria]};font-weight:500">${this.escapeHtml(t.categoria)}</span></td>
                 <td><span class="edificio-tag" style="background:${getEdificioColor(t.edificio, this.data.listas?.edificios)}">${this.escapeHtml(t.edificio)}</span></td>
                 <td>${this.escapeHtml(t.ubicacion)}</td><td>${this.escapeHtml(t.proveedor)}</td><td>${this.formatDate(t.fecha)}</td>
-                <td><span class="status-badge status-${t.estado.toLowerCase().replace(' ', '')}">${this.escapeHtml(t.estado)}</span></td>
+                <td><select class="status-select" onchange="app.quickStatus('tarea','${t.id}',this.value)">${(this.data.listas.estados || []).map(e => `<option value="${e}" ${t.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></td>
                 <td class="actions-cell">
                     ${t.emails && t.emails.length ? `<button class="btn-sm" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640" onclick="app.showRecordEmails('tarea','${t.id}')" title="${t.emails.length} correo(s)"><i class="fas fa-envelope"></i> ${t.emails.length}</button>` : ''}
                     <button class="btn-success btn-sm" onclick="app.editTarea('${t.id}')"><i class="fas fa-edit"></i></button>
@@ -481,6 +481,30 @@ class MaintenanceApp {
     editTarea(id) { const t = this.data.tareas.find(x => x.id === id); if (t) this.showModal('Editar Tarea', this.getTareaForm(t), () => this.saveTarea(t.id)); }
     async deleteTarea(id) { if (!confirm('¿Eliminar tarea?')) return; this.data.tareas = this.data.tareas.filter(t => t.id !== id); await db.delete('tareas', id); this.renderTareas(); this.updateSidebarBadges(); this.showToast('Tarea eliminada', 'success'); }
 
+    async quickStatus(type, id, newStatus) {
+        try {
+            let item, store;
+            if (type === 'tarea') { store = 'tareas'; item = this.data.tareas.find(t => t.id === id); }
+            else if (type === 'visita') { store = 'visitas'; item = this.data.visitas.find(v => v.id === id); }
+            else if (type === 'incidencia') { store = 'incidencias'; item = this.data.incidencias.find(i => i.id === id); }
+            if (!item) return;
+            const oldStatus = item.estado;
+            item.estado = newStatus;
+            item.updatedAt = new Date().toISOString();
+            if (newStatus === 'Completado' && oldStatus !== 'Completado') {
+                item.fechaCompletado = new Date().toISOString().split('T')[0];
+            }
+            await db.put(store, item);
+            this.updateSidebarBadges();
+            this.renderDashboard();
+            this.showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} → ${newStatus}`, 'success');
+        } catch (err) {
+            console.error('Error cambiando estado:', err);
+            this.showToast('Error al cambiar estado', 'error');
+            this.renderSection(this.currentSection);
+        }
+    }
+
     // =================== VISITAS ===================
     renderVisitas() {
         const edi = document.getElementById('filterVisitaEdificio')?.value || '';
@@ -507,7 +531,7 @@ class MaintenanceApp {
                 <td><span class="edificio-tag" style="background:${getEdificioColor(v.edificio, this.data.listas?.edificios)}">${v.edificio}</span></td>
                 <td>${v.tipo}</td><td>${v.motivo}</td>
                 <td>${checklistBadges || '<span style="color:#94a3b8;font-size:11px">Sin checklist</span>'}</td>
-                <td><span class="status-badge status-${v.estado.toLowerCase().replace(' ', '')}">${v.estado}</span></td>
+                <td><select class="status-select" onchange="app.quickStatus('visita','${v.id}',this.value)">${['Pendiente','En Progreso','Completado','Atrasada','Cancelado','Reprogramado'].map(e => `<option value="${e}" ${v.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></td>
                 <td class="actions-cell">
                     ${v.emails && v.emails.length ? `<button class="btn-sm" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640" onclick="app.showRecordEmails('visita','${v.id}')" title="${v.emails.length} correo(s)"><i class="fas fa-envelope"></i> ${v.emails.length}</button>` : ''}
                     <button class="btn-success btn-sm" onclick="app.editVisita('${v.id}')" title="Editar"><i class="fas fa-edit"></i></button>
@@ -1353,7 +1377,7 @@ class MaintenanceApp {
                 <td><span style="color:${CATEGORY_COLORS[i.categoria]};font-weight:500">${this.escapeHtml(i.categoria)}</span></td>
                 <td><span class="status-badge status-${i.prioridad.toLowerCase()}">${this.escapeHtml(i.prioridad)}</span></td>
                 <td>${this.escapeHtml(i.proveedor)}</td>
-                <td><span class="status-badge status-${i.estado.toLowerCase().replace(' ', '')}">${this.escapeHtml(i.estado)}</span></td>
+                <td><select class="status-select" onchange="app.quickStatus('incidencia','${i.id}',this.value)">${['Pendiente','En Progreso','Completado','Atrasada','Cancelado'].map(e => `<option value="${e}" ${i.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></td>
                 <td class="actions-cell">
                     ${i.emails && i.emails.length ? `<button class="btn-sm" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640" onclick="app.showRecordEmails('incidencia','${i.id}')" title="${i.emails.length} correo(s)"><i class="fas fa-envelope"></i> ${i.emails.length}</button>` : ''}
                     <button class="btn-success btn-sm" onclick="app.editIncidencia('${i.id}')"><i class="fas fa-edit"></i></button>

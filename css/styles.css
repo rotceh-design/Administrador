@@ -403,6 +403,17 @@ body {
 .status-pendiente { background: #fef3c7; color: #92400e; }
 .status-enprogreso { background: #dbeafe; color: #1e40af; }
 .status-completado { background: #d1fae5; color: #065f46; }
+.status-atrasada { background: #fee2e2; color: #991b1b; }
+.status-cancelado { background: #f3f4f6; color: #6b7280; }
+.status-reprogramado { background: #ede9fe; color: #6d28d9; }
+
+.status-select {
+    padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-light);
+    font-size: 0.75rem; font-weight: 600; cursor: pointer; background: var(--bg-card);
+    color: var(--text-primary); transition: all 0.2s;
+}
+.status-select:hover { border-color: var(--primary); }
+.status-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
 .status-cancelado { background: #fee2e2; color: #991b1b; }
 .status-alta { background: #fee2e2; color: #991b1b; }
 .status-media { background: #fef3c7; color: #92400e; }
