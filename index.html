@@ -138,9 +138,28 @@
                         </div>
                         <div class="kpi-card kpi-red">
                             <div class="kpi-icon"><i class="fas fa-exclamation-circle"></i></div>
-                            <div class="kpi-info"><h3 id="kpiIncidencias">0</h3><p>Incidencias</p></div>
+                            <div class="kpi-info"><h3 id="kpiIncidencias">0</h3><p>Incidencias Abiertas</p></div>
+                        </div>
+                        <div class="kpi-card kpi-purple">
+                            <div class="kpi-icon"><i class="fas fa-calendar-check"></i></div>
+                            <div class="kpi-info"><h3 id="kpiVisitasPend">0</h3><p>Visitas Pendientes</p></div>
+                        </div>
+                        <div class="kpi-card kpi-orange">
+                            <div class="kpi-icon"><i class="fas fa-calendar-day"></i></div>
+                            <div class="kpi-info"><h3 id="kpiHoy">0</h3><p>Actividad Hoy</p></div>
+                        </div>
+                        <div class="kpi-card kpi-darkred">
+                            <div class="kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div class="kpi-info"><h3 id="kpiVencidas">0</h3><p>Vencidas</p></div>
+                        </div>
+                        <div class="kpi-card kpi-teal">
+                            <div class="kpi-icon"><i class="fas fa-spinner"></i></div>
+                            <div class="kpi-info"><h3 id="kpiEnProgreso">0</h3><p>En Progreso</p></div>
                         </div>
                     </div>
+
+                    <div class="dashboard-alerts" id="dashboardAlerts"></div>
+
                     <div class="dashboard-grid">
                         <div class="card card-lg">
                             <div class="card-header"><h3><i class="fas fa-chart-line"></i> Actividades por Categoría</h3></div>
@@ -157,6 +176,17 @@
                         <div class="card">
                             <div class="card-header"><h3><i class="fas fa-exclamation-triangle"></i> Incidencias Activas</h3></div>
                             <div class="card-body"><div id="incidenciasRecientes"></div></div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-bottom-grid">
+                        <div class="card">
+                            <div class="card-header"><h3><i class="fas fa-history"></i> Actividad Reciente</h3></div>
+                            <div class="card-body"><div id="actividadReciente"></div></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Progreso por CIRION</h3></div>
+                            <div class="card-body"><div id="progresoEdificios"></div></div>
                         </div>
                     </div>
                 </section>

@@ -270,36 +270,127 @@ class MaintenanceApp {
         let visitas = [...(this.data.visitas || [])];
         if (gf) { tareas = tareas.filter(t => t.edificio === gf); incidencias = incidencias.filter(i => i.edificio === gf); visitas = visitas.filter(v => v.edificio === gf); }
 
-        document.getElementById('kpiEdificios').textContent = (this.data.listas.edificios || []).length;
-        document.getElementById('kpiCompletadas').textContent = tareas.filter(t => t.estado === 'Completado').length;
-        document.getElementById('kpiPendientes').textContent = tareas.filter(t => t.estado !== 'Completado').length;
-        document.getElementById('kpiIncidencias').textContent = incidencias.filter(i => i.estado !== 'Completado').length;
+        const today = new Date().toISOString().split('T')[0];
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
 
+        const completadas = tareas.filter(t => t.estado === 'Completado').length;
+        const pendientes = tareas.filter(t => t.estado !== 'Completado').length;
+        const incAbiertas = incidencias.filter(i => i.estado !== 'Completado').length;
+        const visitasPend = visitas.filter(v => v.estado !== 'Completado').length;
+        const vencidas = tareas.filter(t => t.estado !== 'Completado' && t.fecha < today).length;
+        const enProgreso = tareas.filter(t => t.estado === 'En Progreso').length;
+        const hoyActividad = [...tareas, ...visitas, ...incidencias].filter(i => i.fecha === today).length;
+
+        document.getElementById('kpiEdificios').textContent = (this.data.listas.edificios || []).length;
+        document.getElementById('kpiCompletadas').textContent = completadas;
+        document.getElementById('kpiPendientes').textContent = pendientes;
+        document.getElementById('kpiIncidencias').textContent = incAbiertas;
+        document.getElementById('kpiVisitasPend').textContent = visitasPend;
+        document.getElementById('kpiHoy').textContent = hoyActividad;
+        document.getElementById('kpiVencidas').textContent = vencidas;
+        document.getElementById('kpiEnProgreso').textContent = enProgreso;
+
+        // Alerts
+        const alertsHtml = [];
+        if (vencidas > 0) alertsHtml.push(`<div class="alert-card alert-critical" onclick="app.navigateTo('tareas')"><div class="alert-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="alert-text"><strong>${vencidas} tarea${vencidas > 1 ? 's' : ''} vencida${vencidas > 1 ? 's' : ''}</strong><span>Requieren atención inmediata</span></div><span class="alert-count">${vencidas}</span></div>`);
+        const incAlta = incidencias.filter(i => i.estado !== 'Completado' && i.prioridad === 'Alta').length;
+        if (incAlta > 0) alertsHtml.push(`<div class="alert-card alert-critical" onclick="app.navigateTo('incidencias')"><div class="alert-icon"><i class="fas fa-fire"></i></div><div class="alert-text"><strong>${incAlta} incidencia${incAlta > 1 ? 's' : ''} alta</strong><span>Prioridad alta abierta</span></div><span class="alert-count">${incAlta}</span></div>`);
+        const visitasHoy = visitas.filter(v => v.fecha === today && v.estado !== 'Completado');
+        if (visitasHoy.length > 0) alertsHtml.push(`<div class="alert-card alert-info" onclick="app.navigateTo('visitas')"><div class="alert-icon"><i class="fas fa-calendar-day"></i></div><div class="alert-text"><strong>${visitasHoy.length} visita${visitasHoy.length > 1 ? 's' : ''} hoy</strong><span>${visitasHoy.map(v => v.motivo).join(', ')}</span></div></div>`);
+        const visitasProx = visitas.filter(v => v.fecha > today && v.fecha <= nextWeek && v.estado !== 'Completado');
+        if (visitasProx.length > 0) alertsHtml.push(`<div class="alert-card alert-warning" onclick="app.navigateTo('visitas')"><div class="alert-icon"><i class="fas fa-calendar-week"></i></div><div class="alert-text"><strong>${visitasProx.length} visita${visitasProx.length > 1 ? 's' : ''} esta semana</strong><span>Próximos ${visitasProx.length} evento${visitasProx.length > 1 ? 's' : ''}</span></div></div>`);
+        const sinAsignar = tareas.filter(t => t.estado !== 'Completado' && (!t.proveedor || t.proveedor === '')).length;
+        if (sinAsignar > 0) alertsHtml.push(`<div class="alert-card alert-warning" onclick="app.navigateTo('tareas')"><div class="alert-icon"><i class="fas fa-user-slash"></i></div><div class="alert-text"><strong>${sinAsignar} sin proveedor</strong><span>Tareas sin asignar</span></div><span class="alert-count">${sinAsignar}</span></div>`);
+        if (vencidas === 0 && incAlta === 0 && visitasHoy.length === 0) alertsHtml.push(`<div class="alert-card alert-success"><div class="alert-icon"><i class="fas fa-check-circle"></i></div><div class="alert-text"><strong>Sin alertas críticas</strong><span>Todo bajo control</span></div></div>`);
+        document.getElementById('dashboardAlerts').innerHTML = alertsHtml.join('');
+
+        // Proximas Visitas
         const proxVisitas = visitas.filter(v => v.estado !== 'Completado').sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).slice(0, 5);
         document.getElementById('proximasVisitas').innerHTML = proxVisitas.length ? proxVisitas.map(v => `
             <div class="task-item">
                 <div class="task-category" style="background:${getEdificioColor(v.edificio, this.data.listas?.edificios)}"></div>
                 <div class="task-info"><h4>${this.escapeHtml(v.motivo)}</h4><p>${this.escapeHtml(v.edificio)} - ${this.escapeHtml(v.tipo)}</p></div>
-                <span class="status-badge status-${v.estado.toLowerCase().replace(' ', '')}">${this.escapeHtml(v.estado)}</span>
+                <div style="text-align:right"><span class="status-badge status-${v.estado.toLowerCase().replace(' ', '')}">${this.escapeHtml(v.estado)}</span><br><small style="color:var(--text-secondary)">${this.relativeDate(v.fecha)}</small></div>
             </div>`).join('') : '<p class="text-center" style="padding:1.5rem;color:var(--text-secondary)">No hay visitas pendientes</p>';
 
+        // Tareas Pendientes
         const proxTareas = tareas.filter(t => t.estado !== 'Completado').sort((a, b) => new Date(a.fecha) - new Date(b.fecha)).slice(0, 5);
         document.getElementById('proximasTareas').innerHTML = proxTareas.length ? proxTareas.map(t => `
             <div class="task-item">
                 <div class="task-category" style="background:${CATEGORY_COLORS[t.categoria] || '#6b7280'}"></div>
                 <div class="task-info"><h4>${this.escapeHtml(t.actividad)}</h4><p>${this.escapeHtml(t.edificio)} - ${this.escapeHtml(t.categoria)}</p></div>
-                <span class="status-badge status-${t.estado.toLowerCase().replace(' ', '')}">${this.escapeHtml(t.estado)}</span>
+                <div style="text-align:right"><span class="status-badge status-${t.estado.toLowerCase().replace(' ', '')}">${this.escapeHtml(t.estado)}</span><br><small style="color:${t.fecha < today ? 'var(--danger)' : 'var(--text-secondary)'}">${this.relativeDate(t.fecha)}</small></div>
             </div>`).join('') : '<p class="text-center" style="padding:1.5rem;color:var(--text-secondary)">No hay tareas pendientes</p>';
 
-        const incRec = incidencias.filter(i => i.estado !== 'Completado').slice(0, 4);
+        // Incidencias Activas
+        const incRec = incidencias.filter(i => i.estado !== 'Completado').sort((a, b) => { const p = { 'Alta': 0, 'Media': 1, 'Baja': 2 }; return (p[a.prioridad] || 2) - (p[b.prioridad] || 2); }).slice(0, 4);
         document.getElementById('incidenciasRecientes').innerHTML = incRec.length ? incRec.map(i => `
             <div class="task-item">
                 <div class="task-category" style="background:${i.prioridad === 'Alta' ? '#ef4444' : i.prioridad === 'Media' ? '#f59e0b' : '#3b82f6'}"></div>
                 <div class="task-info"><h4>${this.escapeHtml(i.descripcion)}</h4><p>${this.escapeHtml(i.edificio)} - ${this.escapeHtml(i.categoria)}</p></div>
-                <span class="status-badge status-${i.prioridad.toLowerCase()}">${this.escapeHtml(i.prioridad)}</span>
+                <div style="text-align:right"><span class="status-badge status-${i.prioridad.toLowerCase()}">${this.escapeHtml(i.prioridad)}</span><br><small style="color:var(--text-secondary)">${this.relativeDate(i.fecha)}</small></div>
             </div>`).join('') : '<p class="text-center" style="padding:1.5rem;color:var(--text-secondary)">Sin incidencias</p>';
 
+        // Actividad Reciente
+        const allItems = [
+            ...tareas.map(t => ({ ...t, _type: 'tarea', _name: t.actividad })),
+            ...visitas.map(v => ({ ...v, _type: 'visita', _name: v.motivo })),
+            ...incidencias.map(i => ({ ...i, _type: 'incidencia', _name: i.descripcion }))
+        ].sort((a, b) => new Date(b.updatedAt || b.createdAt || b.fecha) - new Date(a.updatedAt || a.createdAt || a.fecha)).slice(0, 8);
+        document.getElementById('actividadReciente').innerHTML = allItems.length ? allItems.map(item => `
+            <div class="activity-item">
+                <div class="activity-dot ${item._type}"></div>
+                <div class="activity-content">
+                    <strong>${this.escapeHtml(item._name)}</strong>
+                    <p>${this.escapeHtml(item.edificio)} · ${item._type === 'tarea' ? item.categoria : item._type === 'visita' ? item.tipo : item.categoria}</p>
+                </div>
+                <span class="activity-time">${this.relativeDateTime(item.updatedAt || item.createdAt || item.fecha)}</span>
+            </div>`).join('') : '<p class="text-center" style="padding:1.5rem;color:var(--text-secondary)">Sin actividad reciente</p>';
+
+        // Progreso por Edificio
+        const edificios = this.data.listas.edificios || [];
+        document.getElementById('progresoEdificios').innerHTML = edificios.map(ed => {
+            const edTareas = (this.data.tareas || []).filter(t => t.edificio === ed);
+            const edCompletadas = edTareas.filter(t => t.estado === 'Completado').length;
+            const total = edTareas.length;
+            const pct = total > 0 ? Math.round((edCompletadas / total) * 100) : 0;
+            const color = getEdificioColor(ed, edificios);
+            return `<div class="progress-item">
+                <div class="progress-label"><span>${this.escapeHtml(ed)}</span><span>${edCompletadas}/${total} (${pct}%)</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+            </div>`;
+        }).join('') || '<p class="text-center" style="padding:1.5rem;color:var(--text-secondary)">Sin datos</p>';
+
         this.renderChartCategorias();
+    }
+
+    relativeDate(fecha) {
+        if (!fecha) return '';
+        const today = new Date(); today.setHours(0,0,0,0);
+        const d = new Date(fecha + 'T00:00:00'); d.setHours(0,0,0,0);
+        const diff = Math.round((d - today) / 86400000);
+        if (diff === 0) return 'Hoy';
+        if (diff === 1) return 'Mañana';
+        if (diff === -1) return 'Ayer';
+        if (diff > 1 && diff <= 7) return `En ${diff} días`;
+        if (diff < -1 && diff >= -7) return `Hace ${Math.abs(diff)} días`;
+        return this.formatDate(fecha);
+    }
+
+    relativeDateTime(dt) {
+        if (!dt) return '';
+        const now = new Date();
+        const d = new Date(dt);
+        const diffMs = now - d;
+        const mins = Math.floor(diffMs / 60000);
+        if (mins < 1) return 'Ahora';
+        if (mins < 60) return `Hace ${mins}m`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `Hace ${hrs}h`;
+        const days = Math.floor(hrs / 24);
+        if (days < 7) return `Hace ${days}d`;
+        return this.formatDate(dt.split('T')[0]);
     }
 
     renderChartCategorias() {
