@@ -72,6 +72,11 @@ const CHECKLIST_CATEGORIES = {
         icon: 'fa-lightbulb',
         items: ['Luces encendidas / funcionales', 'Emergencia y señalización', 'Sensores de presencia', 'Estado de lámparas', 'Interruptores', 'Cableado visible', 'Cuadros eléctricos', 'Iluminación exterior']
     },
+    'Electricidad': {
+        color: '#eab308',
+        icon: 'fa-bolt',
+        items: ['Tableros eléctricos', 'Interruptores termomagnéticos', 'Contactos / Enchufes', 'Cableado general', 'Puesta a tierra', 'Registros eléctricos', 'Carga eléctrica por circuito', 'Medidor de consumo']
+    },
     'Jardinería': {
         color: '#22c55e',
         icon: 'fa-leaf',
