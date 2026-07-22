@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facility Management - Sistema de Mantenimiento</title>
     <link rel="stylesheet" href="css/styles.css?v=2.1">
+    <link rel="stylesheet" href="css/mobile.css?v=1.0">
     <link rel="stylesheet" href="css/email.css">
     <link rel="stylesheet" href="css/quotes.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -720,5 +721,47 @@
     <script src="js/quotes.js"></script>
     <script src="js/reports.js"></script>
     <script src="js/app.js?v=2.2"></script>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="app.closeSidebar()"></div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="bottom-nav" id="bottomNav">
+        <button class="bottom-nav-item active" data-section="dashboard" onclick="app.navigateTo('dashboard')">
+            <i class="fas fa-th-large"></i>
+            <span>Inicio</span>
+        </button>
+        <button class="bottom-nav-item" data-section="tareas" onclick="app.navigateTo('tareas')">
+            <i class="fas fa-tasks"></i>
+            <span>Tareas</span>
+        </button>
+        <button class="bottom-nav-item" data-section="cronograma" onclick="app.navigateTo('cronograma')">
+            <i class="fas fa-calendar"></i>
+            <span>Calendario</span>
+        </button>
+        <button class="bottom-nav-item" data-section="visitas" onclick="app.navigateTo('visitas')">
+            <i class="fas fa-calendar-check"></i>
+            <span>Visitas</span>
+        </button>
+        <button class="bottom-nav-item" data-section="incidencias" onclick="app.navigateTo('incidencias')">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Incidencias</span>
+        </button>
+    </nav>
+
+    <!-- Mobile FAB (Floating Action Button) -->
+    <button class="fab-add" id="fabAdd" onclick="app.mobileFabAction()" title="Agregar">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <script>
+        // Update bottom nav active state
+        document.querySelectorAll('.bottom-nav-item').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
 </body>
 </html>

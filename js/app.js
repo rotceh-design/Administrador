@@ -120,7 +120,7 @@ class MaintenanceApp {
     bindEvents() {
         document.querySelectorAll('.nav-item').forEach(i => i.addEventListener('click', e => { e.preventDefault(); this.navigateTo(i.dataset.section); }));
         document.getElementById('toggleSidebar')?.addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
-        document.getElementById('mobileMenu')?.addEventListener('click', () => document.getElementById('sidebar').classList.toggle('active'));
+        document.getElementById('mobileMenu')?.addEventListener('click', () => this.openSidebar());
         document.getElementById('addNewBtn')?.addEventListener('click', () => this.showAddModal());
         document.getElementById('modalClose')?.addEventListener('click', () => this.closeModal());
         document.getElementById('modalCancel')?.addEventListener('click', () => this.closeModal());
@@ -255,6 +255,13 @@ class MaintenanceApp {
         document.getElementById('pageSubtitle').textContent = t[section]?.[1] || '';
         this.renderSection(section);
         document.getElementById('sidebar')?.classList.remove('active');
+        document.getElementById('sidebarOverlay')?.classList.remove('active');
+        document.body.style.overflow = '';
+        // Update bottom nav
+        document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.toggle('active', b.dataset.section === section));
+        // Update FAB visibility
+        const fab = document.getElementById('fabAdd');
+        if (fab) fab.style.display = ['tareas','visitas','incidencias','proveedores','cotizaciones'].includes(section) ? 'flex' : 'none';
     }
 
     renderSection(section) {
@@ -1801,6 +1808,27 @@ class MaintenanceApp {
     showModal(title, content, onSave) { document.getElementById('modalTitle').textContent = title; document.getElementById('modalBody').innerHTML = content; document.getElementById('modalOverlay').classList.add('active'); this.modalOnSave = onSave; }
     closeModal() { document.getElementById('modalOverlay').classList.remove('active'); this.modalOnSave = null; }
     saveModalData() { if (this.modalOnSave) this.modalOnSave(); }
+
+    // Mobile methods
+    openSidebar() {
+        document.getElementById('sidebar').classList.add('active');
+        document.getElementById('sidebarOverlay').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    closeSidebar() {
+        document.getElementById('sidebar').classList.remove('active');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    mobileFabAction() {
+        const section = this.currentSection;
+        if (section === 'tareas') this.showModal('Nueva Tarea', this.getTareaForm(), () => this.saveTarea());
+        else if (section === 'visitas') this.showModal('Nueva Visita', this.getVisitaForm(), () => this.saveVisita());
+        else if (section === 'incidencias') this.showModal('Nueva Incidencia', this.getIncidenciaForm(), () => this.saveIncidencia());
+        else if (section === 'proveedores') this.showModal('Nuevo Proveedor', this.getProveedorForm(), () => this.saveProveedor());
+        else if (section === 'cotizaciones') quoteManager.openNewQuote();
+        else this.showAddModal();
+    }
 
     showAddModal() {
         const forms = { tareas: ['Nueva Tarea', this.getTareaForm(), () => this.saveTarea()], visitas: ['Nueva Visita', this.getVisitaForm(), () => this.saveVisita()], incidencias: ['Nueva Incidencia', this.getIncidenciaForm(), () => this.saveIncidencia()], proveedores: ['Nuevo Proveedor', this.getProveedorForm(), () => this.saveProveedor()], cotizaciones: null };
