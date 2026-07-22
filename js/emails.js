@@ -154,7 +154,18 @@ class EmailGenerator {
                     <div class="form-group"><label>Estado actual</label><select id="emailEstado" onchange="emailGenerator.updatePreview()"><option value="Pendiente">Pendiente</option><option value="En Progreso">En Progreso</option><option value="Completado">Completado</option></select></div>
                     <div class="form-group"><label>Fecha</label><input type="date" id="emailFecha" value="${today}" onchange="emailGenerator.updatePreview()"></div>
                 </div>
-                <div class="form-group"><label>Mensaje de seguimiento *</label><textarea id="emailDescripcion" rows="3" placeholder="Ej: Quisiera conocer el avance de la actividad y fecha estimada de finalización..." oninput="emailGenerator.updatePreview()"></textarea></div>
+                <div class="form-group">
+                    <label>Mensaje de seguimiento *</label>
+                    <select onchange="if(this.value){document.getElementById('emailDescripcion').value=this.value;emailGenerator.updatePreview()}" style="width:100%;margin-bottom:6px;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#64748b">
+                        <option value="">Seleccionar frase rápida...</option>
+                        <option value="Quisiera conocer el avance de la actividad y fecha estimada de finalización">Solicitar avance</option>
+                        <option value="Le confirmamos que el trabajo está en curso, le mantendremos informado">Confirmar avance</option>
+                        <option value="El trabajo ha sido completado satisfactoriamente">Trabajo completado</option>
+                        <option value="Se requiere información adicional para continuar con la actividad">Info adicional requerida</option>
+                        <option value="Favor confirmar recepción de esta comunicación">Confirmar recepción</option>
+                    </select>
+                    <textarea id="emailDescripcion" rows="3" placeholder="Ej: Quisiera conocer el avance de la actividad y fecha estimada de finalización..." oninput="emailGenerator.updatePreview()"></textarea>
+                </div>
             `,
             confirmacion: `
                 <div class="form-row">
@@ -168,7 +179,18 @@ class EmailGenerator {
                     <div class="form-group"><label>Ubicación</label><select id="emailUbicacion" onchange="emailGenerator.updatePreview()">${ubiOptions}</select></div>
                     <div class="form-group"><label>Fecha de realización</label><input type="date" id="emailFecha" value="${today}" onchange="emailGenerator.updatePreview()"></div>
                 </div>
-                <div class="form-group"><label>Comentarios sobre el trabajo</label><textarea id="emailDescripcion" rows="3" placeholder="Ej: Trabajo realizado satisfactoriamente, sin observaciones..." oninput="emailGenerator.updatePreview()"></textarea></div>
+                <div class="form-group">
+                    <label>Comentarios sobre el trabajo</label>
+                    <select onchange="if(this.value){document.getElementById('emailDescripcion').value=this.value;emailGenerator.updatePreview()}" style="width:100%;margin-bottom:6px;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#64748b">
+                        <option value="">Seleccionar frase rápida...</option>
+                        <option value="Trabajo realizado satisfactoriamente, sin observaciones">Satisfactorio sin obs.</option>
+                        <option value="Trabajo completado, se requiere seguimiento en 30 días">Seguimiento 30 días</option>
+                        <option value="Servicio ejecutado conforme a lo acordado, queda en garantía">Conforme con garantía</option>
+                        <option value="Se acepta el trabajo con observaciones menores que serán corregidas">Con obs. menores</option>
+                        <option value="Trabajo no conforme, se solicita re-ejecución">No conforme</option>
+                    </select>
+                    <textarea id="emailDescripcion" rows="3" placeholder="Ej: Trabajo realizado satisfactoriamente, sin observaciones..." oninput="emailGenerator.updatePreview()"></textarea>
+                </div>
             `,
             recordatorio: `
                 <div class="form-row">
@@ -186,7 +208,17 @@ class EmailGenerator {
                     <div class="form-group"><label>Fecha programada</label><input type="date" id="emailFecha" value="${today}" onchange="emailGenerator.updatePreview()"></div>
                     <div class="form-group"><label>Estado</label><select id="emailEstado" onchange="emailGenerator.updatePreview()"><option value="Pendiente">Pendiente</option><option value="En Progreso">En Progreso</option></select></div>
                 </div>
-                <div class="form-group"><label>Mensaje adicional</label><textarea id="emailDescripcion" rows="2" placeholder="Instrucciones o recordatorios adicionales... (opcional)" oninput="emailGenerator.updatePreview()"></textarea></div>
+                <div class="form-group">
+                    <label>Mensaje adicional</label>
+                    <select onchange="if(this.value){document.getElementById('emailDescripcion').value=this.value;emailGenerator.updatePreview()}" style="width:100%;margin-bottom:6px;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#64748b">
+                        <option value="">Seleccionar frase rápida...</option>
+                        <option value="Le recordamos que esta actividad se encuentra pendiente de ejecución">Recordar pendiente</option>
+                        <option value="Favor atender a la mayor brevedad posible, la actividad lleva retraso">Atender urgente</option>
+                        <option value="Solicitamos confirmar fecha de ejecución a la brevedad">Confirmar fecha</option>
+                        <option value="La actividad fue reprogramada, favor ignorar recordatorios anteriores">Reprogramada</option>
+                    </select>
+                    <textarea id="emailDescripcion" rows="2" placeholder="Instrucciones o recordatorios adicionales... (opcional)" oninput="emailGenerator.updatePreview()"></textarea>
+                </div>
             `,
             cotizacion: `
                 <div class="form-row">
@@ -197,12 +229,34 @@ class EmailGenerator {
                     <div class="form-group"><label>Tipo de servicio *</label><select id="emailCategoria" onchange="emailGenerator.updatePreview()">${catOptions}</select></div>
                     <div class="form-group"><label>Ubicación</label><select id="emailUbicacion" onchange="emailGenerator.updatePreview()">${ubiOptions}</select></div>
                 </div>
-                <div class="form-group"><label>Descripción del servicio *</label><textarea id="emailDescripcion" rows="3" placeholder="Ej: Se requiere cotización para instalación de 5 extintores..." oninput="emailGenerator.updatePreview()"></textarea></div>
+                <div class="form-group">
+                    <label>Descripción del servicio *</label>
+                    <select onchange="if(this.value){document.getElementById('emailDescripcion').value=this.value;emailGenerator.updatePreview()}" style="width:100%;margin-bottom:6px;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#64748b">
+                        <option value="">Seleccionar frase rápida...</option>
+                        <option value="Se requiere cotización para mantenimiento preventivo programado">Mant. preventivo</option>
+                        <option value="Se solicita presupuesto para reparación de equipo o instalación">Reparación</option>
+                        <option value="Cotización para servicio de limpieza profunda">Limpieza profunda</option>
+                        <option value="Se necesita presupuesto para instalación de nuevo equipo">Instalación</option>
+                        <option value="Cotización para inspección técnica y emisión de informe">Inspección + informe</option>
+                    </select>
+                    <textarea id="emailDescripcion" rows="3" placeholder="Ej: Se requiere cotización para instalación de 5 extintores..." oninput="emailGenerator.updatePreview()"></textarea>
+                </div>
                 <div class="form-row">
                     <div class="form-group"><label>Cantidad estimada</label><input type="text" id="emailCantidad" placeholder="Ej: 5 unidades, 20 m², etc." oninput="emailGenerator.updatePreview()"></div>
                     <div class="form-group"><label>Fecha necesitada</label><input type="date" id="emailFecha" value="${today}" onchange="emailGenerator.updatePreview()"></div>
                 </div>
-                <div class="form-group"><label>Requisitos adicionales</label><textarea id="emailMensajeExtra" rows="2" placeholder="Incluir garantía, especificaciones técnicas, opciones de pago... (opcional)" oninput="emailGenerator.updatePreview()"></textarea></div>
+                <div class="form-group">
+                    <label>Requisitos adicionales</label>
+                    <select onchange="if(this.value){document.getElementById('emailMensajeExtra').value=this.value;emailGenerator.updatePreview()}" style="width:100%;margin-bottom:6px;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#64748b">
+                        <option value="">Seleccionar frase rápida...</option>
+                        <option value="Incluir garantía de al menos 12 meses por servicio ejecutado">Garantía 12 meses</option>
+                        <option value="Solicitar desglose detallado de materiales y mano de obra">Desglose detallado</option>
+                        <option value="Requerir póliza de responsabilidad civil vigente">Póliza RC</option>
+                        <option value="Incluir tiempos de ejecución y cronograma de trabajos">Cronograma</option>
+                        <option value="Cotización válida por al menos 30 días">Vigencia 30 días</option>
+                    </select>
+                    <textarea id="emailMensajeExtra" rows="2" placeholder="Incluir garantía, especificaciones técnicas, opciones de pago... (opcional)" oninput="emailGenerator.updatePreview()"></textarea>
+                </div>
             `,
             visita: `
                 <div class="form-row">
