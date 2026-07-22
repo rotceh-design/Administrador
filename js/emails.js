@@ -323,7 +323,8 @@ Quedamos a sus órdenes para cualquier consulta.
 
 Atentamente,
 ${cfg.administrador}
-CIRION ${edificio}
+${cfg.nombreEmpresa || 'Facility Management'}
+CIRION
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
         } else if (type === 'visita') {
@@ -351,7 +352,8 @@ Quedamos a sus órdenes para cualquier consulta.
 
 Atentamente,
 ${cfg.administrador}
-CIRION ${edificio}
+${cfg.nombreEmpresa || 'Facility Management'}
+CIRION
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
         } else if (type === 'incidencia') {
@@ -376,7 +378,8 @@ Solicitamos atender esta incidencia a la brevedad posible.
 
 Atentamente,
 ${cfg.administrador}
-CIRION ${edificio}
+${cfg.nombreEmpresa || 'Facility Management'}
+CIRION
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
         }
@@ -444,7 +447,7 @@ Quedamos a sus órdenes para cualquier consulta.
 Atentamente,
 ${cfg.administrador}
 ${cfg.nombreEmpresa || 'Facility Management'}
-CIRION ${edificio}
+CIRION
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
                 break;
@@ -471,7 +474,7 @@ Solicitamos su pronta intervención para la resolución del problema.
 Atentamente,
 ${cfg.administrador}
 ${cfg.nombreEmpresa || 'Facility Management'}
-CIRION ${edificio}
+CIRION
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
                 break;
@@ -498,7 +501,7 @@ Agradecemos nos proporcione una actualización del avance.
 Atentamente,
 ${cfg.administrador}
 ${cfg.nombreEmpresa || 'Facility Management'}
-CIRION ${edificio}`;
+CIRION`;
                 break;
 
             case 'confirmacion':
@@ -520,7 +523,7 @@ Agradecemos su pronta respuesta y quedamos a disposición para futuros trabajos.
 Atentamente,
 ${cfg.administrador}
 ${cfg.nombreEmpresa || 'Facility Management'}
-CIRION ${edificio}`;
+CIRION`;
                 break;
 
             case 'recordatorio':
@@ -543,7 +546,7 @@ Solicitamos atender a la mayor brevedad posible.
 Atentamente,
 ${cfg.administrador}
 ${cfg.nombreEmpresa || 'Facility Management'}
-CIRION ${edificio}`;
+CIRION`;
                 break;
 
             case 'cotizacion':
@@ -576,7 +579,7 @@ Agradecemos incluir:
 Atentamente,
 ${cfg.administrador}
 ${cfg.nombreEmpresa || 'Facility Management'}
-CIRION ${edificio}
+CIRION
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
                 break;
@@ -608,7 +611,7 @@ Quedamos a sus órdenes para cualquier consulta.
 Atentamente,
 ${cfg.administrador}
 ${cfg.nombreEmpresa || 'Facility Management'}
-CIRION ${edificio}
+CIRION
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
                 break;
