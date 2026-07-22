@@ -217,8 +217,19 @@ class EmailGenerator {
                     <div class="form-group"><label>Fecha de la visita *</label><input type="date" id="emailFecha" value="${today}" onchange="emailGenerator.updatePreview()"></div>
                     <div class="form-group"><label>Hora preferida</label><input type="text" id="emailCantidad" placeholder="Ej: 10:00 - 12:00" oninput="emailGenerator.updatePreview()"></div>
                 </div>
-                <div class="form-group"><label>Motivo / Descripción *</label><textarea id="emailDescripcion" rows="3" placeholder="Ej: Se requiere visita de inspección para revisión trimestral de instalaciones..." oninput="emailGenerator.updatePreview()"></textarea></div>
-                <div class="form-group"><label>Checklist a realizar</label><textarea id="emailMensajeExtra" rows="2" placeholder="Áreas o items a revisar durante la visita... (opcional)" oninput="emailGenerator.updatePreview()"></textarea></div>
+                <div class="form-group">
+                    <label>Checklist / Áreas a revisar</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">${checklistCats}</div>
+                    <input type="hidden" id="emailMensajeExtra" value="">
+                </div>
+                <div class="form-group">
+                    <label>Motivo / Descripción *</label>
+                    <select onchange="if(this.value){document.getElementById('emailDescripcion').value=this.value;emailGenerator.updatePreview()}" style="width:100%;margin-bottom:6px;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#64748b">
+                        <option value="">Seleccionar frase rápida...</option>
+                        ${fraseServicioOptions}
+                    </select>
+                    <textarea id="emailDescripcion" rows="3" placeholder="Ej: Se requiere visita de inspección para revisión trimestral de instalaciones..." oninput="emailGenerator.updatePreview()"></textarea>
+                </div>
             `
         };
     }
