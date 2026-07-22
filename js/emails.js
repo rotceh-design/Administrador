@@ -30,6 +30,37 @@ class EmailGenerator {
         const priOptions = prs.map(p => `<option value="${p}">${p}</option>`).join('');
         const today = new Date().toISOString().split('T')[0];
 
+        const checklistCats = Object.entries(CHECKLIST_CATEGORIES).map(([cat, data]) => {
+            return `<label class="checklist-option" style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;cursor:pointer;background:#f8fafc;border:1px solid #e2e8f0;transition:all 0.15s">
+                <input type="checkbox" class="email-checklist-cat" value="${cat}" onchange="emailGenerator.updatePreview()" style="accent-color:${data.color};width:16px;height:16px">
+                <span style="color:${data.color};font-size:14px;width:20px;text-align:center"><i class="fas ${data.icon}"></i></span>
+                <span style="font-size:13px;font-weight:500;color:#334155">${cat}</span>
+            </label>`;
+        }).join('');
+
+        const frasesServicio = [
+            'Se requiere revisión general de mantenimiento preventivo',
+            'Servicio de limpieza profunda programada',
+            'Reparación de equipo o instalación dañada',
+            'Inspección técnica para verificación de normativas',
+            'Mantenimiento correctivo por falla reportada',
+            'Instalación o reemplazo de componente',
+            'Supervisión de obra o trabajos especializados',
+            'Auditoría de cumplimiento de protocolos'
+        ];
+        const frasesObs = [
+            'Se solicita atención prioritaria por afectación a usuarios',
+            'El trabajo debe realizarse fuera del horario laboral',
+            'Se requiere coordinar acceso con administración del edificio',
+            'Favor enviar evidencia fotográfica del trabajo realizado',
+            'El proveedor debe contar con seguro de responsabilidad civil',
+            'Se solicita cotización previa antes de iniciar los trabajos',
+            'Trabajo sujeto a aprobación de presupuesto',
+            'Se requiere informe detallado al finalizar el servicio'
+        ];
+        const fraseServicioOptions = frasesServicio.map(f => `<option value="${f}">${f}</option>`).join('');
+        const fraseObsOptions = frasesObs.map(f => `<option value="${f}">${f}</option>`).join('');
+
         return {
             solicitud: `
                 <div class="form-row">
@@ -44,8 +75,27 @@ class EmailGenerator {
                     <div class="form-group"><label>Prioridad</label><select id="emailPrioridad" onchange="emailGenerator.updatePreview()">${priOptions}</select></div>
                     <div class="form-group"><label>Fecha solicitada</label><input type="date" id="emailFecha" value="${today}" onchange="emailGenerator.updatePreview()"></div>
                 </div>
-                <div class="form-group"><label>Descripción del servicio *</label><textarea id="emailDescripcion" rows="3" placeholder="Ej: Se requiere revisión del sistema eléctrico en las oficinas..." oninput="emailGenerator.updatePreview()"></textarea></div>
-                <div class="form-group"><label>Mensaje adicional</label><textarea id="emailMensajeExtra" rows="2" placeholder="Instrucciones adicionales, horarios preferidos, etc. (opcional)" oninput="emailGenerator.updatePreview()"></textarea></div>
+                <div class="form-group">
+                    <label>Checklist / Áreas a revisar</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">${checklistCats}</div>
+                    <input type="hidden" id="emailMensajeExtra" value="">
+                </div>
+                <div class="form-group">
+                    <label>Descripción del servicio *</label>
+                    <select onchange="if(this.value){document.getElementById('emailDescripcion').value=this.value;emailGenerator.updatePreview()}" style="width:100%;margin-bottom:6px;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#64748b">
+                        <option value="">Seleccionar frase rápida...</option>
+                        ${fraseServicioOptions}
+                    </select>
+                    <textarea id="emailDescripcion" rows="3" placeholder="Ej: Se requiere revisión del sistema eléctrico en las oficinas..." oninput="emailGenerator.updatePreview()"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Mensaje adicional</label>
+                    <select onchange="if(this.value){document.getElementById('emailMensajeExtra').value=this.value;emailGenerator.updatePreview()}" style="width:100%;margin-bottom:6px;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#64748b">
+                        <option value="">Seleccionar frase rápida...</option>
+                        ${fraseObsOptions}
+                    </select>
+                    <textarea id="emailMensajeExtraView" rows="2" placeholder="Instrucciones adicionales (opcional)" oninput="document.getElementById('emailMensajeExtra').value=this.value;emailGenerator.updatePreview()"></textarea>
+                </div>
             `,
             incidencia: `
                 <div class="form-row">
@@ -60,8 +110,33 @@ class EmailGenerator {
                     <div class="form-group"><label>Prioridad *</label><select id="emailPrioridad" onchange="emailGenerator.updatePreview()">${priOptions}</select></div>
                     <div class="form-group"><label>Fecha del problema</label><input type="date" id="emailFecha" value="${today}" onchange="emailGenerator.updatePreview()"></div>
                 </div>
-                <div class="form-group"><label>Descripción del problema *</label><textarea id="emailDescripcion" rows="3" placeholder="Ej: Se detectó una fuga de agua en el baño del pasillo principal..." oninput="emailGenerator.updatePreview()"></textarea></div>
-                <div class="form-group"><label>Observaciones</label><textarea id="emailObservaciones" rows="2" placeholder="Detalles adicionales, nivel de urgencia, si hay daños colaterales... (opcional)" oninput="emailGenerator.updatePreview()"></textarea></div>
+                <div class="form-group">
+                    <label>Descripción del problema *</label>
+                    <select onchange="if(this.value){document.getElementById('emailDescripcion').value=this.value;emailGenerator.updatePreview()}" style="width:100%;margin-bottom:6px;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#64748b">
+                        <option value="">Seleccionar frase rápida...</option>
+                        <option value="Se detectó fuga de agua en la zona indicada">Fuga de agua</option>
+                        <option value="Falla en el sistema eléctrico, cortes intermitentes">Falla eléctrica</option>
+                        <option value="Equipo de climatización no enciende / no enfría">Falla A/C</option>
+                        <option value="Daño en puerta, ventana o cerradura">Daño en infraestructura</option>
+                        <option value="Filtración de agua por techo o pared">Filtración</option>
+                        <option value="Obstrucción en drenajes o tuberías">Obstrucción</option>
+                        <option value="Ruido anormal en equipos o instalaciones">Ruido anormal</option>
+                        <option value="Problemática con el sistema de seguridad">Falla seguridad</option>
+                    </select>
+                    <textarea id="emailDescripcion" rows="3" placeholder="Ej: Se detectó una fuga de agua en el baño del pasillo principal..." oninput="emailGenerator.updatePreview()"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Observaciones</label>
+                    <select onchange="if(this.value){document.getElementById('emailObservaciones').value=this.value;emailGenerator.updatePreview()}" style="width:100%;margin-bottom:6px;padding:6px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#64748b">
+                        <option value="">Seleccionar frase rápida...</option>
+                        <option value="Se solicita atención prioritaria por afectación a usuarios">Atención prioritaria</option>
+                        <option value="Hay daños colaterales que requieren reparación adicional">Daños colaterales</option>
+                        <option value="El problema afecta a múltiples departamentos/usuarios">Afectación múltiple</option>
+                        <option value="Se requiere coordinar acceso con administración del edificio">Acceso coordinado</option>
+                        <option value="Favor enviar evidencia fotográfica del problema">Evidencia fotográfica</option>
+                    </select>
+                    <textarea id="emailObservaciones" rows="2" placeholder="Detalles adicionales, nivel de urgencia, si hay daños colaterales... (opcional)" oninput="emailGenerator.updatePreview()"></textarea>
+                </div>
             `,
             seguimiento: `
                 <div class="form-row">
@@ -335,6 +410,8 @@ ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
         const actividad = this.getVal('emailActividad') || '';
         const estado = this.getVal('emailEstado') || '';
         const cantidad = this.getVal('emailCantidad') || '';
+        const checklistCats = [...document.querySelectorAll('.email-checklist-cat:checked')].map(cb => cb.value);
+        const checklistText = checklistCats.length ? checklistCats.join(', ') : '';
 
         const cfg = this.config;
         let subject = '';
@@ -366,6 +443,7 @@ Quedamos a sus órdenes para cualquier consulta.
 
 Atentamente,
 ${cfg.administrador}
+${cfg.nombreEmpresa || 'Facility Management'}
 CIRION ${edificio}
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
@@ -392,6 +470,7 @@ Solicitamos su pronta intervención para la resolución del problema.
 
 Atentamente,
 ${cfg.administrador}
+${cfg.nombreEmpresa || 'Facility Management'}
 CIRION ${edificio}
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
@@ -418,6 +497,7 @@ Agradecemos nos proporcione una actualización del avance.
 
 Atentamente,
 ${cfg.administrador}
+${cfg.nombreEmpresa || 'Facility Management'}
 CIRION ${edificio}`;
                 break;
 
@@ -439,6 +519,7 @@ Agradecemos su pronta respuesta y quedamos a disposición para futuros trabajos.
 
 Atentamente,
 ${cfg.administrador}
+${cfg.nombreEmpresa || 'Facility Management'}
 CIRION ${edificio}`;
                 break;
 
@@ -461,6 +542,7 @@ Solicitamos atender a la mayor brevedad posible.
 
 Atentamente,
 ${cfg.administrador}
+${cfg.nombreEmpresa || 'Facility Management'}
 CIRION ${edificio}`;
                 break;
 
@@ -493,6 +575,7 @@ Agradecemos incluir:
 
 Atentamente,
 ${cfg.administrador}
+${cfg.nombreEmpresa || 'Facility Management'}
 CIRION ${edificio}
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;
@@ -515,7 +598,8 @@ ${cantidad ? `• Hora preferida: ${cantidad}` : ''}
 
 MOTIVO DE LA VISITA:
 ${descripcion}
-${mensajeExtra ? `\nCHECKLIST / ÁREAS A REVISAR:\n${mensajeExtra}` : ''}
+${checklistText ? `\nCHECKLIST / ÁREAS A REVISAR:\n${checklistText}` : ''}
+${mensajeExtra && !checklistText ? `\nINSTRUCCIONES ADICIONALES:\n${mensajeExtra}` : ''}
 
 Agradecemos confirmar disponibilidad y horario para dicha visita.
 
@@ -523,6 +607,7 @@ Quedamos a sus órdenes para cualquier consulta.
 
 Atentamente,
 ${cfg.administrador}
+${cfg.nombreEmpresa || 'Facility Management'}
 CIRION ${edificio}
 ${cfg.telefono ? `Tel: ${cfg.telefono}` : ''}
 ${cfg.emailNotif ? `Email: ${cfg.emailNotif}` : ''}`;

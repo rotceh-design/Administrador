@@ -414,6 +414,9 @@ body {
 }
 .status-select:hover { border-color: var(--primary); }
 .status-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+
+.email-checklist-cat:checked + span:last-child { font-weight: 700; }
+.email-checklist-cat:checked + i + span { font-weight: 700; }
 .status-cancelado { background: #fee2e2; color: #991b1b; }
 .status-alta { background: #fee2e2; color: #991b1b; }
 .status-media { background: #fef3c7; color: #92400e; }
