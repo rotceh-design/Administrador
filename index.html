@@ -728,7 +728,24 @@
 
             try {
                 await window._fbAuth.signInWithEmailAndPassword(window._auth, email, password);
-                localStorage.setItem('fm_user_role', selectedRole);
+
+                // Buscar el rol del usuario en la base de datos personal
+                let userRole = selectedRole;
+                try {
+                    const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js");
+                    const q = query(collection(window._firestore, 'personal'), where('email', '==', email));
+                    const snapshot = await getDocs(q);
+                    if (!snapshot.empty) {
+                        const userData = snapshot.docs[0].data();
+                        if (userData.rol) {
+                            userRole = userData.rol;
+                        }
+                    }
+                } catch (e) {
+                    console.log('No se encontró rol en BD, usando selección manual');
+                }
+
+                localStorage.setItem('fm_user_role', userRole);
             } catch (err) {
                 const messages = {
                     'auth/user-not-found': 'Usuario no encontrado',

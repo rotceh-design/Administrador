@@ -111,6 +111,10 @@ class TeamManager {
                 <div class="form-group"><label>CIRION Asignado</label><select id="pEdificio"><option value="">Sin asignar</option>${eds.map(e => `<option value="${e}" ${p?.edificioAsignado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
             </div>
             <div class="form-group"><label>Estado</label><select id="pEstado">${['Activo', 'Inactivo', 'Vacaciones', 'Permiso'].map(e => `<option value="${e}" ${p?.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
+            <div class="form-group"><label>Rol de acceso al sistema *</label><select id="pRol">
+                <option value="Mantenimiento" ${p?.rol === 'Mantenimiento' ? 'selected' : ''}>Mantenimiento (solo tareas, visitas, informes, fotos)</option>
+                <option value="Facility Manager" ${p?.rol === 'Facility Manager' || !p ? 'selected' : ''}>Facility Manager (acceso total)</option>
+            </select></div>
             <div class="form-group"><label>Fecha de Ingreso</label><input type="date" id="pFechaIngreso" value="${p?.fechaIngreso || new Date().toISOString().split('T')[0]}"></div>
             <div class="form-group">
                 <label><i class="fas fa-certificate" style="color:#f59e0b"></i> Certificaciones</label>
@@ -151,6 +155,7 @@ class TeamManager {
                 area: app.gv('pArea'),
                 edificioAsignado: app.gv('pEdificio'),
                 estado: app.gv('pEstado'),
+                rol: app.gv('pRol'),
                 fechaIngreso: app.gv('pFechaIngreso'),
                 certificaciones: certs,
                 habilidades: habs,
