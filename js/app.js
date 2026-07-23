@@ -55,8 +55,11 @@ class MaintenanceApp {
                 // Update user info in sidebar
                 const userName = document.getElementById('userName');
                 const userRole = document.getElementById('userRole');
+                const role = getUserRole();
                 if (userName) userName.textContent = user.email.split('@')[0];
-                if (userRole) userRole.textContent = user.email;
+                if (userRole) userRole.textContent = role;
+
+                this.applyRolePermissions(role);
 
                 await this.loadData();
                 await quoteManager.init();
@@ -75,14 +78,14 @@ class MaintenanceApp {
 
     async loadData() {
         this.data = {};
-        for (const store of ['tareas', 'visitas', 'incidencias', 'proveedores', 'fotos', 'cotizaciones', 'notificaciones', 'informesDiarios']) {
+        for (const store of ['tareas', 'visitas', 'incidencias', 'proveedores', 'fotos', 'cotizaciones', 'notificaciones', 'informesDiarios', 'personal', 'turnos']) {
             this.data[store] = await db.getAll(store);
         }
         this.data.listas = {};
         const listas = await db.getAll('listas');
         listas.forEach(l => this.data.listas[l.key] = l.value);
 
-        const defaults = { categorias: [], ubicaciones: [], edificios: [], estados: INITIAL_DATA.estados, prioridades: INITIAL_DATA.prioridades, tiposVisita: INITIAL_DATA.tiposVisita, meses: INITIAL_DATA.meses };
+        const defaults = { categorias: [], ubicaciones: [], edificios: [], estados: INITIAL_DATA.estados, prioridades: INITIAL_DATA.prioridades, tiposVisita: INITIAL_DATA.tiposVisita, meses: INITIAL_DATA.meses, cargos: INITIAL_DATA.cargos, areasTrabajo: INITIAL_DATA.areasTrabajo, certificaciones: INITIAL_DATA.certificaciones };
         for (const [k, v] of Object.entries(defaults)) {
             if (!this.data.listas[k] || (Array.isArray(this.data.listas[k]) && this.data.listas[k].length === 0 && v.length > 0)) {
                 this.data.listas[k] = v;
@@ -115,6 +118,8 @@ class MaintenanceApp {
         fillSelect('filterVisitaTipo', tps, 'Todos los tipos');
         fillSelect('filterInformeEdificio', eds, 'Todos los CIRION');
         fillSelect('reportEdificio', eds, 'Todos');
+        fillSelect('filterTeamEdificio', eds, 'Todos los CIRION');
+        fillSelect('filterTeamCargo', this.data.listas?.cargos || [], 'Todos los cargos');
     }
 
     bindEvents() {
@@ -135,6 +140,7 @@ class MaintenanceApp {
         document.getElementById('searchProveedor')?.addEventListener('input', () => this.renderProveedores());
         ['filterGanttEdificio', 'filterGanttCategoria'].forEach(id => document.getElementById(id)?.addEventListener('change', () => this.renderGantt()));
         ['filterInformeEdificio', 'filterInformeFecha'].forEach(id => document.getElementById(id)?.addEventListener('change', () => this.renderInformes()));
+        ['filterTeamEdificio', 'filterTeamCargo'].forEach(id => document.getElementById(id)?.addEventListener('change', () => teamManager.render()));
 
         document.getElementById('filterEdificioGlobal')?.addEventListener('change', () => this.renderSection(this.currentSection));
 
@@ -245,12 +251,61 @@ class MaintenanceApp {
 
     getGlobalFilter() { return document.getElementById('filterEdificioGlobal')?.value || ''; }
 
+    applyRolePermissions(role) {
+        const fmSections = ['dashboard', 'tareas', 'cronograma', 'gantt', 'visitas', 'incidencias', 'informes', 'equipo', 'proveedores', 'fotos', 'emails', 'cotizaciones', 'reportes', 'config'];
+        const mttoSections = ['cronograma', 'gantt', 'visitas', 'informes', 'fotos'];
+
+        const allowedSections = role === 'Mantenimiento' ? mttoSections : fmSections;
+
+        document.querySelectorAll('.nav-item').forEach(item => {
+            const section = item.dataset.section;
+            if (!allowedSections.includes(section)) {
+                item.style.display = 'none';
+            } else {
+                item.style.display = '';
+            }
+        });
+
+        document.querySelectorAll('.nav-section').forEach(sec => {
+            const nextItems = [];
+            let el = sec.nextElementSibling;
+            while (el && !el.classList.contains('nav-section')) {
+                if (el.classList.contains('nav-item')) nextItems.push(el);
+                el = el.nextElementSibling;
+            }
+            const hasVisible = nextItems.some(i => i.style.display !== 'none');
+            sec.style.display = hasVisible ? '' : 'none';
+        });
+
+        const fab = document.getElementById('fabAdd');
+        if (role === 'Mantenimiento') {
+            if (fab) fab.style.display = 'none';
+            const addNewBtn = document.getElementById('addNewBtn');
+            if (addNewBtn) addNewBtn.style.display = 'none';
+            const configNav = document.querySelector('[data-section="config"]');
+            if (configNav) configNav.style.display = 'none';
+        }
+
+        if (!allowedSections.includes(this.currentSection)) {
+            this.navigateTo(allowedSections[0] || 'dashboard');
+        }
+    }
+
     navigateTo(section) {
+        const role = getUserRole();
+        const fmSections = ['dashboard', 'tareas', 'cronograma', 'gantt', 'visitas', 'incidencias', 'informes', 'equipo', 'proveedores', 'fotos', 'emails', 'cotizaciones', 'reportes', 'config'];
+        const mttoSections = ['cronograma', 'gantt', 'visitas', 'informes', 'fotos'];
+        const allowedSections = role === 'Mantenimiento' ? mttoSections : fmSections;
+
+        if (!allowedSections.includes(section)) {
+            section = allowedSections[0] || 'dashboard';
+        }
+
         this.currentSection = section;
         document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.section === section));
         document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
         document.getElementById(`${section}Section`)?.classList.add('active');
-        const t = { dashboard: ['Dashboard', 'Panel de control'], tareas: ['Tareas', 'Gestión de tareas de mantenimiento'], cronograma: ['Cronograma', 'Calendario por CIRION - 4 columnas'], gantt: ['Carta Gantt', 'Diagrama de Gantt - Cronograma visual'], visitas: ['Visitas', 'Registro de visitas a CIRION'], incidencias: ['Incidencias', 'Registro y seguimiento de problemas'], informes: ['Informes Diarios', 'Reporte diario de actividades'], proveedores: ['Proveedores', 'Directorio de servicios'], fotos: ['Fotografías', 'Galería de imágenes'], emails: ['Correos', 'Generador de correos electrónicos'], cotizaciones: ['Cotizaciones', 'Presupuestos y cotizaciones'], reportes: ['Reportes', 'Estadísticas e informes'], config: ['Configuración', 'Ajustes del sistema'] };
+        const t = { dashboard: ['Dashboard', 'Panel de control'], tareas: ['Tareas', 'Gestión de tareas de mantenimiento'], cronograma: ['Cronograma', 'Calendario por CIRION - 4 columnas'], gantt: ['Carta Gantt', 'Diagrama de Gantt - Cronograma visual'], visitas: ['Visitas', 'Registro de visitas a CIRION'], incidencias: ['Incidencias', 'Registro y seguimiento de problemas'], informes: ['Informes Diarios', 'Reporte diario de actividades'], proveedores: ['Proveedores', 'Directorio de servicios'], fotos: ['Fotografías', 'Galería de imágenes'], emails: ['Correos', 'Generador de correos electrónicos'], cotizaciones: ['Cotizaciones', 'Presupuestos y cotizaciones'], reportes: ['Reportes', 'Estadísticas e informes'], config: ['Configuración', 'Ajustes del sistema'], equipo: ['Equipo', 'Gestión de personal y turnos'] };
         document.getElementById('pageTitle').textContent = t[section]?.[0] || section;
         document.getElementById('pageSubtitle').textContent = t[section]?.[1] || '';
         this.renderSection(section);
@@ -261,11 +316,11 @@ class MaintenanceApp {
         document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.toggle('active', b.dataset.section === section));
         // Update FAB visibility
         const fab = document.getElementById('fabAdd');
-        if (fab) fab.style.display = ['tareas','visitas','incidencias','proveedores','cotizaciones'].includes(section) ? 'flex' : 'none';
+        if (fab) fab.style.display = ['tareas','visitas','incidencias','proveedores','cotizaciones','equipo'].includes(section) ? 'flex' : 'none';
     }
 
     renderSection(section) {
-        const r = { dashboard: () => this.renderDashboard(), tareas: () => this.renderTareas(), cronograma: () => this.renderCronograma(), gantt: () => this.renderGantt(), visitas: () => this.renderVisitas(), incidencias: () => this.renderIncidencias(), informes: () => this.renderInformes(), proveedores: () => this.renderProveedores(), fotos: () => this.loadPhotos(), cotizaciones: () => this.loadQuotes(), reportes: () => this.generateReport(), config: () => this.renderConfig() };
+        const r = { dashboard: () => this.renderDashboard(), tareas: () => this.renderTareas(), cronograma: () => this.renderCronograma(), gantt: () => this.renderGantt(), visitas: () => this.renderVisitas(), incidencias: () => this.renderIncidencias(), informes: () => this.renderInformes(), proveedores: () => this.renderProveedores(), fotos: () => this.loadPhotos(), cotizaciones: () => this.loadQuotes(), reportes: () => this.generateReport(), config: () => this.renderConfig(), equipo: () => teamManager.init() };
         if (r[section]) r[section]();
     }
 
@@ -432,8 +487,11 @@ class MaintenanceApp {
                 <td><select class="status-select" onchange="app.quickStatus('tarea','${t.id}',this.value)">${(this.data.listas.estados || []).map(e => `<option value="${e}" ${t.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></td>
                 <td class="actions-cell">
                     ${t.emails && t.emails.length ? `<button class="btn-sm" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640" onclick="app.showRecordEmails('tarea','${t.id}')" title="${t.emails.length} correo(s)"><i class="fas fa-envelope"></i> ${t.emails.length}</button>` : ''}
+                    <button class="btn-sm" style="background:#06b6d420;color:#06b6d4;border:1px solid #06b6d440" onclick="teamManager.showAssignModal('${t.id}')" title="Asignar personal"><i class="fas fa-user-plus"></i></button>
+                    ${getUserRole() === 'Facility Manager' ? `
                     <button class="btn-success btn-sm" onclick="app.editTarea('${t.id}')"><i class="fas fa-edit"></i></button>
                     <button class="btn-danger btn-sm" onclick="app.deleteTarea('${t.id}')"><i class="fas fa-trash"></i></button>
+                    ` : ''}
                 </td>
             </tr>`).join('') : '<tr><td colspan="9" class="text-center">No se encontraron tareas</td></tr>';
         document.getElementById('navTareasBadge').textContent = this.data.tareas?.filter(t => t.estado !== 'Completado').length || 0;
@@ -541,11 +599,11 @@ class MaintenanceApp {
                 <td><select class="status-select" onchange="app.quickStatus('visita','${v.id}',this.value)">${['Pendiente','En Progreso','Completado','Atrasada','Cancelado','Reprogramado'].map(e => `<option value="${e}" ${v.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></td>
                 <td class="actions-cell">
                     ${v.emails && v.emails.length ? `<button class="btn-sm" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640" onclick="app.showRecordEmails('visita','${v.id}')" title="${v.emails.length} correo(s)"><i class="fas fa-envelope"></i> ${v.emails.length}</button>` : ''}
-                    <button class="btn-success btn-sm" onclick="app.editVisita('${v.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                    ${getUserRole() === 'Facility Manager' ? `<button class="btn-success btn-sm" onclick="app.editVisita('${v.id}')" title="Editar"><i class="fas fa-edit"></i></button>` : ''}
                     ${v.checklist && v.checklist.length ? `<button class="btn-sm" style="background:#8b5cf6;color:#fff" onclick="app.openInspeccion('${v.id}')" title="Realizar Inspección"><i class="fas fa-clipboard-check"></i></button>` : ''}
                     <button class="btn-primary btn-sm" onclick="app.exportVisitaChecklist('${v.id}')" title="Exportar Plan Checklist"><i class="fas fa-file-excel"></i></button>
                     ${v.checklistResults ? `<button class="btn-sm" style="background:#059669;color:#fff" onclick="app.exportVisitaChecklist('${v.id}','results')" title="Exportar Resultados"><i class="fas fa-file-check"></i></button>` : ''}
-                    <button class="btn-danger btn-sm" onclick="app.deleteVisita('${v.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                    ${getUserRole() === 'Facility Manager' ? `<button class="btn-danger btn-sm" onclick="app.deleteVisita('${v.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>` : ''}
                 </td>
             </tr>`;
         }).join('') : '<tr><td colspan="8" class="text-center">No se encontraron visitas</td></tr>';
@@ -1531,8 +1589,10 @@ class MaintenanceApp {
                     <div><span class="edificio-tag" style="background:${getEdificioColor(inf.edificio, this.data.listas?.edificios)}">${inf.edificio}</span><span class="informe-date">${this.formatDate(inf.fecha)}</span></div>
                     <div class="informe-actions">
                         <button class="btn-secondary btn-sm" onclick="app.printInforme('${inf.id}')"><i class="fas fa-print"></i></button>
+                        ${getUserRole() === 'Facility Manager' ? `
                         <button class="btn-success btn-sm" onclick="app.editInforme('${inf.id}')"><i class="fas fa-edit"></i></button>
                         <button class="btn-danger btn-sm" onclick="app.deleteInforme('${inf.id}')"><i class="fas fa-trash"></i></button>
+                        ` : ''}
                     </div>
                 </div>
                 <div class="informe-body">
@@ -1822,17 +1882,34 @@ class MaintenanceApp {
     }
     mobileFabAction() {
         const section = this.currentSection;
+        const role = getUserRole();
+        if (role === 'Mantenimiento') {
+            if (section === 'visitas') this.showModal('Nueva Visita', this.getVisitaForm(), () => this.saveVisita());
+            else if (section === 'informes') this.showNewInformeModal();
+            return;
+        }
         if (section === 'tareas') this.showModal('Nueva Tarea', this.getTareaForm(), () => this.saveTarea());
         else if (section === 'visitas') this.showModal('Nueva Visita', this.getVisitaForm(), () => this.saveVisita());
         else if (section === 'incidencias') this.showModal('Nueva Incidencia', this.getIncidenciaForm(), () => this.saveIncidencia());
         else if (section === 'proveedores') this.showModal('Nuevo Proveedor', this.getProveedorForm(), () => this.saveProveedor());
         else if (section === 'cotizaciones') quoteManager.openNewQuote();
+        else if (section === 'equipo') teamManager.showNewPersonal();
         else this.showAddModal();
     }
 
     showAddModal() {
-        const forms = { tareas: ['Nueva Tarea', this.getTareaForm(), () => this.saveTarea()], visitas: ['Nueva Visita', this.getVisitaForm(), () => this.saveVisita()], incidencias: ['Nueva Incidencia', this.getIncidenciaForm(), () => this.saveIncidencia()], proveedores: ['Nuevo Proveedor', this.getProveedorForm(), () => this.saveProveedor()], cotizaciones: null };
+        const role = getUserRole();
+        if (role === 'Mantenimiento') {
+            if (this.currentSection === 'visitas') {
+                this.showModal('Nueva Visita', this.getVisitaForm(), () => this.saveVisita());
+            } else if (this.currentSection === 'informes') {
+                this.showNewInformeModal();
+            }
+            return;
+        }
+        const forms = { tareas: ['Nueva Tarea', this.getTareaForm(), () => this.saveTarea()], visitas: ['Nueva Visita', this.getVisitaForm(), () => this.saveVisita()], incidencias: ['Nueva Incidencia', this.getIncidenciaForm(), () => this.saveIncidencia()], proveedores: ['Nuevo Proveedor', this.getProveedorForm(), () => this.saveProveedor()], equipo: null, cotizaciones: null };
         if (this.currentSection === 'cotizaciones') { quoteManager.openNewQuote(); return; }
+        if (this.currentSection === 'equipo') { teamManager.showNewPersonal(); return; }
         const f = forms[this.currentSection] || forms.tareas;
         this.showModal(f[0], f[1], f[2]);
     }

@@ -145,7 +145,7 @@ class PhotoManager {
                     <img src="${photo.displayUrl || photo.url || photo.dataUrl}" alt="${photo.descripcion || photo.originalName}" loading="lazy">
                     <div class="photo-overlay">
                         <button class="photo-action-btn" onclick="event.stopPropagation(); photoManager.viewPhoto('${photo.id}')" title="Ver"><i class="fas fa-expand"></i></button>
-                        <button class="photo-action-btn danger" onclick="event.stopPropagation(); photoManager.confirmDelete('${photo.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                        ${getUserRole() === 'Facility Manager' ? `<button class="photo-action-btn danger" onclick="event.stopPropagation(); photoManager.confirmDelete('${photo.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>` : ''}
                     </div>
                 </div>
                 <div class="photo-info">

@@ -5,8 +5,65 @@ const INITIAL_DATA = {
     tiposVisita: ['Inspección', 'Mantenimiento Preventivo', 'Mantenimiento Correctivo', 'Supervisión', 'Auditoría'],
     estados: ['Pendiente', 'En Progreso', 'Completado', 'Atrasada', 'Cancelado', 'Reprogramado'],
     prioridades: ['Alta', 'Media', 'Baja'],
-    meses: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+    meses: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+    cargos: [
+        'Técnico Eléctrico',
+        'Técnico HVAC',
+        'Plomero',
+        'Jardinero',
+        'Auxiliar de Aseo',
+        'Supervisor de Mantención',
+        'Técnico de Infraestructura',
+        'Guardia de Seguridad',
+        'Administrador de Facility',
+        'Técnico de Extintores'
+    ],
+    areasTrabajo: [
+        'Eléctrico',
+        'Gasfitería',
+        'Climatización',
+        'Jardinería',
+        'Aseo',
+        'Infraestructura',
+        'Seguridad',
+        'Prevención de Riesgos'
+    ],
+    certificaciones: [
+        'Certificación Eléctrica',
+        'Trabajo en Alturas',
+        'Espacios Confinados',
+        'Manipulador de Alimentos',
+        'Manejo de Extintores',
+        'Primeros Auxilios',
+        'Certificación HVAC',
+        'Licencia de Conducción',
+        'Certificación IOSH',
+        'Curse ABC'
+    ]
 };
+
+const HABILIDADES_LIST = [
+    'Soldadura',
+    'Carpintería',
+    'Pintura',
+    'Electricidad general',
+    'Plomería general',
+    'Mecánica',
+    'Soldadura MIG/TIG',
+    'Electrónica',
+    'Automatización',
+    'Lectura de planos',
+    'Instalación de vidrios',
+    'Mantenimiento de jardines',
+    'Uso de andamios',
+    'Operación de grúas',
+    'Idioma inglés',
+    'Idioma portugués',
+    'Uso de herramientas especiales',
+    'Instalación de pisos',
+    'Techumbres',
+    'Impermeabilización'
+];
 
 const CATEGORY_COLORS = {
     'Electricidad': '#f59e0b',
@@ -34,6 +91,19 @@ const CATEGORY_ICONS = {
     'Extintores': 'fa-fire-extinguisher',
     'Vidrios': 'fa-window-maximize',
     'Jardinería': 'fa-leaf'
+};
+
+const CARGO_COLORS = {
+    'Técnico Eléctrico': '#f59e0b',
+    'Técnico HVAC': '#06b6d4',
+    'Plomero': '#3b82f6',
+    'Jardinero': '#22c55e',
+    'Auxiliar de Aseo': '#8b5cf6',
+    'Supervisor de Mantención': '#ef4444',
+    'Técnico de Infraestructura': '#6366f1',
+    'Guardia de Seguridad': '#1e40af',
+    'Administrador de Facility': '#dc2626',
+    'Técnico de Extintores': '#f97316'
 };
 
 const EDIFICIO_COLORS = {

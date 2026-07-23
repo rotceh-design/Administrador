@@ -55,6 +55,9 @@
                 </a>
 
                 <div class="nav-section">GESTIÓN</div>
+                <a href="#" class="nav-item" data-section="equipo">
+                    <i class="fas fa-users-cog"></i><span>Equipo</span>
+                </a>
                 <a href="#" class="nav-item" data-section="proveedores">
                     <i class="fas fa-users"></i><span>Proveedores</span>
                 </a>
@@ -321,6 +324,23 @@
                         <button class="btn-primary" id="nuevoInformeBtn"><i class="fas fa-plus"></i> Nuevo Informe</button>
                     </div>
                     <div class="informes-list" id="informesList"></div>
+                </section>
+
+                <!-- Equipo -->
+                <section class="content-section" id="equipoSection">
+                    <div class="team-tabs">
+                        <button class="team-tab-btn active" data-tab="personal" onclick="teamManager.switchTab('personal')"><i class="fas fa-user-friends"></i> Personal</button>
+                        <button class="team-tab-btn" data-tab="cargos" onclick="teamManager.switchTab('cargos')"><i class="fas fa-id-badge"></i> Cargos</button>
+                        <button class="team-tab-btn" data-tab="turnos" onclick="teamManager.switchTab('turnos')"><i class="fas fa-calendar-alt"></i> Turnos</button>
+                        <button class="team-tab-btn" data-tab="certificaciones" onclick="teamManager.switchTab('certificaciones')"><i class="fas fa-certificate"></i> Certificaciones</button>
+                    </div>
+                    <div class="team-filters" id="teamFilters">
+                        <select id="filterTeamEdificio" class="filter-select"><option value="">Todos los CIRION</option></select>
+                        <select id="filterTeamCargo" class="filter-select"><option value="">Todos los cargos</option></select>
+                        <input type="text" class="filter-input" placeholder="Buscar miembro..." id="filterTeamSearch" oninput="teamManager.render()">
+                        <button class="btn-primary" onclick="teamManager.showNewPersonal()"><i class="fas fa-plus"></i> Nuevo</button>
+                    </div>
+                    <div id="teamContent"></div>
                 </section>
 
                 <!-- Proveedores -->
@@ -642,6 +662,21 @@
                 <p>Inicia sesión para continuar</p>
             </div>
             <form id="loginForm" onsubmit="return handleLogin(event)">
+                <div class="login-role-selector">
+                    <label class="login-role-label"><i class="fas fa-id-badge"></i> Selecciona tu cargo</label>
+                    <div class="login-role-options">
+                        <button type="button" class="login-role-btn active" data-role="Facility Manager" onclick="selectLoginRole(this)">
+                            <i class="fas fa-user-tie"></i>
+                            <span class="login-role-name">Facility Manager</span>
+                            <span class="login-role-desc">Control total del sistema</span>
+                        </button>
+                        <button type="button" class="login-role-btn" data-role="Mantenimiento" onclick="selectLoginRole(this)">
+                            <i class="fas fa-tools"></i>
+                            <span class="login-role-name">Mantenimiento</span>
+                            <span class="login-role-desc">Tareas, visitas e informes</span>
+                        </button>
+                    </div>
+                </div>
                 <div class="login-field">
                     <label><i class="fas fa-envelope"></i> Email</label>
                     <input type="email" id="loginEmail" placeholder="correo@ejemplo.com" required autocomplete="email">
@@ -663,6 +698,22 @@
     </div>
 
     <script>
+        let selectedRole = 'Facility Manager';
+
+        function selectLoginRole(btn) {
+            document.querySelectorAll('.login-role-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedRole = btn.dataset.role;
+        }
+
+        function getUserRole() {
+            return localStorage.getItem('fm_user_role') || 'Facility Manager';
+        }
+
+        function isFacilityManager() {
+            return getUserRole() === 'Facility Manager';
+        }
+
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
@@ -677,6 +728,7 @@
 
             try {
                 await window._fbAuth.signInWithEmailAndPassword(window._auth, email, password);
+                localStorage.setItem('fm_user_role', selectedRole);
             } catch (err) {
                 const messages = {
                     'auth/user-not-found': 'Usuario no encontrado',
@@ -696,6 +748,7 @@
         async function handleLogout() {
             try {
                 await window._fbAuth.signOut(window._auth);
+                localStorage.removeItem('fm_user_role');
             } catch (err) {
                 console.error('Logout error:', err);
             }
@@ -720,6 +773,7 @@
     <script src="js/emails.js?v=2.3"></script>
     <script src="js/quotes.js"></script>
     <script src="js/reports.js"></script>
+    <script src="js/team.js"></script>
     <script src="js/app.js?v=2.2"></script>
 
     <!-- Mobile Sidebar Overlay -->
@@ -735,9 +789,9 @@
             <i class="fas fa-tasks"></i>
             <span>Tareas</span>
         </button>
-        <button class="bottom-nav-item" data-section="cronograma" onclick="app.navigateTo('cronograma')">
-            <i class="fas fa-calendar"></i>
-            <span>Calendario</span>
+        <button class="bottom-nav-item" data-section="equipo" onclick="app.navigateTo('equipo')">
+            <i class="fas fa-users-cog"></i>
+            <span>Equipo</span>
         </button>
         <button class="bottom-nav-item" data-section="visitas" onclick="app.navigateTo('visitas')">
             <i class="fas fa-calendar-check"></i>
