@@ -159,16 +159,21 @@ class TeamManager {
 
             if (isNew && email && password) {
                 try {
-                    const userCredential = await window._fbAuth.createUserWithEmailAndPassword(window._auth, email, password);
-                    d.uid = userCredential.user.uid;
+                    const res = await fetch('/api/create-user', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password, displayName: `${d.nombre} ${d.apellido}` })
+                    });
+                    const data = await res.json();
+
+                    if (!res.ok) {
+                        app.showToast(data.error || 'Error creando cuenta', 'error');
+                        return;
+                    }
+                    d.uid = data.uid;
                     app.showToast(`Cuenta creada: ${email}`, 'success');
                 } catch (authErr) {
-                    const messages = {
-                        'auth/email-already-in-use': 'Este email ya está registrado',
-                        'auth/invalid-email': 'Email inválido',
-                        'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres'
-                    };
-                    app.showToast(messages[authErr.code] || 'Error creando cuenta: ' + authErr.message, 'error');
+                    app.showToast('Error de conexión al crear cuenta', 'error');
                     return;
                 }
             }
