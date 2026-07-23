@@ -91,6 +91,7 @@ class TeamManager {
         const certs = app.data.listas?.certificaciones || [];
         const selectedCerts = p?.certificaciones || [];
         const selectedHabs = p?.habilidades || [];
+        const isNew = !p;
 
         return `<form id="personalForm">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -98,18 +99,19 @@ class TeamManager {
                 <div class="form-group"><label>Apellido *</label><input type="text" id="pApellido" value="${app.escapeHtml(p?.apellido || '')}" required></div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div class="form-group"><label>Email</label><input type="email" id="pEmail" value="${app.escapeHtml(p?.email || '')}"></div>
+                <div class="form-group"><label>Email * (será su usuario de ingreso)</label><input type="email" id="pEmail" value="${app.escapeHtml(p?.email || '')}" ${isNew ? 'required' : 'disabled'} ${!isNew ? 'style="background:#f1f5f9;color:#94a3b8"' : ''}></div>
+                <div class="form-group"><label>Contraseña ${isNew ? '*' : ''}</label><input type="password" id="pPassword" placeholder="${isNew ? 'Mínimo 6 caracteres' : 'Dejar vacío para no cambiar'}" ${isNew ? 'required minlength="6"' : ''} ${!isNew ? 'style="background:#f1f5f9"' : ''}></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="form-group"><label>Teléfono</label><input type="tel" id="pTelefono" value="${app.escapeHtml(p?.telefono || '')}"></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="form-group"><label>Cargo *</label><select id="pCargo">${cargos.map(c => `<option value="${c}" ${p?.cargo === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
-                <div class="form-group"><label>Área de Trabajo</label><select id="pArea">${areas.map(a => `<option value="${a}" ${p?.area === a ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="form-group"><label>Área de Trabajo</label><select id="pArea">${areas.map(a => `<option value="${a}" ${p?.area === a ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
                 <div class="form-group"><label>CIRION Asignado</label><select id="pEdificio"><option value="">Sin asignar</option>${eds.map(e => `<option value="${e}" ${p?.edificioAsignado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
-                <div class="form-group"><label>Estado</label><select id="pEstado">${['Activo', 'Inactivo', 'Vacaciones', 'Permiso'].map(e => `<option value="${e}" ${p?.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
             </div>
-            <div class="form-group"><label>Fecha de Ingreso</label><input type="date" id="pFechaIngreso" value="${p?.fechaIngreso || ''}"></div>
+            <div class="form-group"><label>Estado</label><select id="pEstado">${['Activo', 'Inactivo', 'Vacaciones', 'Permiso'].map(e => `<option value="${e}" ${p?.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
+            <div class="form-group"><label>Fecha de Ingreso</label><input type="date" id="pFechaIngreso" value="${p?.fechaIngreso || new Date().toISOString().split('T')[0]}"></div>
             <div class="form-group">
                 <label><i class="fas fa-certificate" style="color:#f59e0b"></i> Certificaciones</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:120px;overflow-y:auto;padding:4px">
@@ -136,10 +138,14 @@ class TeamManager {
         try {
             const certs = [...document.querySelectorAll('.p-cert:checked')].map(cb => cb.value);
             const habs = [...document.querySelectorAll('.p-hab:checked')].map(cb => cb.value);
+            const email = app.gv('pEmail');
+            const password = app.gv('pPassword');
+            const isNew = !id;
+
             const d = {
                 nombre: app.gv('pNombre'),
                 apellido: app.gv('pApellido'),
-                email: app.gv('pEmail'),
+                email: email,
                 telefono: app.gv('pTelefono'),
                 cargo: app.gv('pCargo'),
                 area: app.gv('pArea'),
@@ -151,6 +157,22 @@ class TeamManager {
                 observaciones: app.gv('pObservaciones')
             };
 
+            if (isNew && email && password) {
+                try {
+                    const userCredential = await window._fbAuth.createUserWithEmailAndPassword(window._auth, email, password);
+                    d.uid = userCredential.user.uid;
+                    app.showToast(`Cuenta creada: ${email}`, 'success');
+                } catch (authErr) {
+                    const messages = {
+                        'auth/email-already-in-use': 'Este email ya está registrado',
+                        'auth/invalid-email': 'Email inválido',
+                        'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres'
+                    };
+                    app.showToast(messages[authErr.code] || 'Error creando cuenta: ' + authErr.message, 'error');
+                    return;
+                }
+            }
+
             if (id) {
                 const i = app.data.personal.findIndex(p => p.id === id);
                 if (i !== -1) {
@@ -159,6 +181,7 @@ class TeamManager {
                     d.updatedAt = new Date().toISOString();
                     if (existing.createdAt) d.createdAt = existing.createdAt;
                     if (existing.foto) d.foto = existing.foto;
+                    if (existing.uid) d.uid = existing.uid;
                     app.data.personal[i] = { ...existing, ...d };
                     await db.put('personal', app.data.personal[i]);
                 }
@@ -171,7 +194,7 @@ class TeamManager {
 
             app.closeModal();
             this.render();
-            app.showToast(id ? 'Personal actualizado' : 'Personal agregado', 'success');
+            app.showToast(id ? 'Personal actualizado' : 'Personal agregado con cuenta de acceso', 'success');
         } catch (err) {
             console.error('Error guardando personal:', err);
             app.showToast('Error al guardar', 'error');
