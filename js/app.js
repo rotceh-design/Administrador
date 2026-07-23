@@ -250,9 +250,21 @@ class MaintenanceApp {
 
     getGlobalFilter() { return document.getElementById('filterEdificioGlobal')?.value || ''; }
 
+    getCurrentUserEmail() {
+        return window._auth?.currentUser?.email || '';
+    }
+
+    getUserName() {
+        const email = this.getCurrentUserEmail();
+        if (!email) return '';
+        const personal = this.data.personal?.find(p => p.email === email);
+        if (personal) return `${personal.nombre} ${personal.apellido}`;
+        return email.split('@')[0];
+    }
+
     applyRolePermissions(role) {
         const fmSections = ['dashboard', 'tareas', 'cronograma', 'gantt', 'visitas', 'incidencias', 'informes', 'equipo', 'proveedores', 'fotos', 'emails', 'cotizaciones', 'reportes', 'config'];
-        const mttoSections = ['cronograma', 'gantt', 'visitas', 'informes', 'fotos'];
+        const mttoSections = ['dashboard', 'tareas', 'cronograma', 'gantt', 'visitas', 'informes', 'fotos'];
 
         const allowedSections = role === 'Mantenimiento' ? mttoSections : fmSections;
 
@@ -286,14 +298,14 @@ class MaintenanceApp {
         }
 
         if (!allowedSections.includes(this.currentSection)) {
-            this.navigateTo(allowedSections[0] || 'dashboard');
+            this.navigateTo(role === 'Mantenimiento' ? 'dashboard' : allowedSections[0] || 'dashboard');
         }
     }
 
     navigateTo(section) {
         const role = getUserRole();
         const fmSections = ['dashboard', 'tareas', 'cronograma', 'gantt', 'visitas', 'incidencias', 'informes', 'equipo', 'proveedores', 'fotos', 'emails', 'cotizaciones', 'reportes', 'config'];
-        const mttoSections = ['cronograma', 'gantt', 'visitas', 'informes', 'fotos'];
+        const mttoSections = ['dashboard', 'tareas', 'cronograma', 'gantt', 'visitas', 'informes', 'fotos'];
         const allowedSections = role === 'Mantenimiento' ? mttoSections : fmSections;
 
         if (!allowedSections.includes(section)) {
@@ -304,7 +316,7 @@ class MaintenanceApp {
         document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.section === section));
         document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
         document.getElementById(`${section}Section`)?.classList.add('active');
-        const t = { dashboard: ['Dashboard', 'Panel de control'], tareas: ['Tareas', 'Gestión de tareas de mantenimiento'], cronograma: ['Cronograma', 'Calendario por CIRION - 4 columnas'], gantt: ['Carta Gantt', 'Diagrama de Gantt - Cronograma visual'], visitas: ['Visitas', 'Registro de visitas a CIRION'], incidencias: ['Incidencias', 'Registro y seguimiento de problemas'], informes: ['Informes Diarios', 'Reporte diario de actividades'], proveedores: ['Proveedores', 'Directorio de servicios'], fotos: ['Fotografías', 'Galería de imágenes'], emails: ['Correos', 'Generador de correos electrónicos'], cotizaciones: ['Cotizaciones', 'Presupuestos y cotizaciones'], reportes: ['Reportes', 'Estadísticas e informes'], config: ['Configuración', 'Ajustes del sistema'], equipo: ['Equipo', 'Gestión de personal y turnos'] };
+        const t = { dashboard: ['Dashboard', getUserRole() === 'Mantenimiento' ? 'Mis actividades del día' : 'Panel de control'], tareas: ['Tareas', getUserRole() === 'Mantenimiento' ? 'Mis tareas asignadas' : 'Gestión de tareas de mantenimiento'], cronograma: ['Cronograma', 'Calendario por CIRION - 4 columnas'], gantt: ['Carta Gantt', 'Diagrama de Gantt - Cronograma visual'], visitas: ['Visitas', getUserRole() === 'Mantenimiento' ? 'Mis visitas programadas' : 'Registro de visitas a CIRION'], incidencias: ['Incidencias', 'Registro y seguimiento de problemas'], informes: ['Informes Diarios', getUserRole() === 'Mantenimiento' ? 'Crear informe diario' : 'Reporte diario de actividades'], proveedores: ['Proveedores', 'Directorio de servicios'], fotos: ['Fotografías', 'Galería de imágenes'], emails: ['Correos', 'Generador de correos electrónicos'], cotizaciones: ['Cotizaciones', 'Presupuestos y cotizaciones'], reportes: ['Reportes', 'Estadísticas e informes'], config: ['Configuración', 'Ajustes del sistema'], equipo: ['Equipo', 'Gestión de personal y turnos'] };
         document.getElementById('pageTitle').textContent = t[section]?.[0] || section;
         document.getElementById('pageSubtitle').textContent = t[section]?.[1] || '';
         this.renderSection(section);
@@ -325,6 +337,10 @@ class MaintenanceApp {
 
     // =================== DASHBOARD ===================
     renderDashboard() {
+        if (getUserRole() === 'Mantenimiento') {
+            this.renderDashboardMtto();
+            return;
+        }
         const gf = this.getGlobalFilter();
         let tareas = [...(this.data.tareas || [])];
         let incidencias = [...(this.data.incidencias || [])];
@@ -426,6 +442,124 @@ class MaintenanceApp {
         this.renderChartCategorias();
     }
 
+    // =================== DASHBOARD MANTENIMIENTO ===================
+    renderDashboardMtto() {
+        const email = this.getCurrentUserEmail();
+        const userName = this.getUserName();
+        const today = new Date().toISOString().split('T')[0];
+        const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+
+        const myTareas = (this.data.tareas || []).filter(t => {
+            const proveedor = (t.proveedor || '').toLowerCase();
+            return proveedor.includes(email.split('@')[0]) || t.emailAsignado === email;
+        });
+
+        const myVisitas = (this.data.visitas || []).filter(v => {
+            const prov = (v.proveedor || '').toLowerCase();
+            return prov.includes(email.split('@')[0]) || v.emailAsignado === email;
+        });
+
+        const pendientes = myTareas.filter(t => t.estado !== 'Completado');
+        const completadas = myTareas.filter(t => t.estado === 'Completado');
+        const vencidas = myTareas.filter(t => t.estado !== 'Completado' && t.fecha < today);
+        const visitasPend = myVisitas.filter(v => v.estado !== 'Completado');
+        const visitasHoy = myVisitas.filter(v => v.fecha === today && v.estado !== 'Completado');
+
+        const container = document.getElementById('dashboardSection');
+
+        container.innerHTML = `
+            <div style="padding:20px">
+                <div style="background:linear-gradient(135deg,#1e40af,#3b82f6);border-radius:16px;padding:24px 28px;color:#fff;margin-bottom:20px">
+                    <h2 style="font-size:22px;font-weight:800;margin-bottom:4px">Hola, ${this.escapeHtml(userName)}</h2>
+                    <p style="opacity:0.85;font-size:14px">Estas son tus actividades de hoy</p>
+                </div>
+
+                <div class="kpi-grid" style="margin-bottom:20px">
+                    <div class="kpi-card kpi-yellow">
+                        <div class="kpi-icon"><i class="fas fa-clock"></i></div>
+                        <div class="kpi-info"><h3>${pendientes.length}</h3><p>Mis Pendientes</p></div>
+                    </div>
+                    <div class="kpi-card kpi-green">
+                        <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="kpi-info"><h3>${completadas.length}</h3><p>Completadas</p></div>
+                    </div>
+                    <div class="kpi-card kpi-red">
+                        <div class="kpi-icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <div class="kpi-info"><h3>${vencidas.length}</h3><p>Vencidas</p></div>
+                    </div>
+                    <div class="kpi-card kpi-purple">
+                        <div class="kpi-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div class="kpi-info"><h3>${visitasPend.length}</h3><p>Visitas Pendientes</p></div>
+                    </div>
+                </div>
+
+                ${visitasHoy.length > 0 ? `
+                <div class="card" style="margin-bottom:16px">
+                    <div class="card-header"><h3><i class="fas fa-calendar-day" style="color:#8b5cf6"></i> Mis Visitas Hoy</h3></div>
+                    <div class="card-body">
+                        ${visitasHoy.map(v => {
+                            const edColor = getEdificioColor(v.edificio, this.data.listas?.edificios || []);
+                            return `<div class="task-item">
+                                <div class="task-category" style="background:#8b5cf6"></div>
+                                <div class="task-info"><h4>${this.escapeHtml(v.motivo)}</h4><p><span class="edificio-tag" style="background:${edColor}20;color:${edColor}">${this.escapeHtml(v.edificio)}</span> · ${this.escapeHtml(v.tipo)}</p></div>
+                                <div style="text-align:right"><span class="status-badge status-${v.estado.toLowerCase().replace(' ','')}">${this.escapeHtml(v.estado)}</span></div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>` : ''}
+
+                ${vencidas.length > 0 ? `
+                <div class="card" style="margin-bottom:16px;border-left:4px solid #ef4444">
+                    <div class="card-header"><h3><i class="fas fa-exclamation-triangle" style="color:#ef4444"></i> Tareas Vencidas</h3></div>
+                    <div class="card-body">
+                        ${vencidas.map(t => {
+                            const catColor = CATEGORY_COLORS[t.categoria] || '#6b7280';
+                            const edColor = getEdificioColor(t.edificio, this.data.listas?.edificios || []);
+                            return `<div class="task-item">
+                                <div class="task-category" style="background:${catColor}"></div>
+                                <div class="task-info"><h4>${this.escapeHtml(t.actividad)}</h4><p><span class="edificio-tag" style="background:${edColor}20;color:${edColor}">${this.escapeHtml(t.edificio)}</span> · ${this.escapeHtml(t.categoria)}</p></div>
+                                <div style="text-align:right"><span class="status-badge status-${t.estado.toLowerCase().replace(' ','')}">${this.escapeHtml(t.estado)}</span><br><small style="color:var(--danger)">${this.relativeDate(t.fecha)}</small></div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>` : ''}
+
+                <div class="card" style="margin-bottom:16px">
+                    <div class="card-header"><h3><i class="fas fa-tasks" style="color:#3b82f6"></i> Mis Tareas Pendientes</h3></div>
+                    <div class="card-body">
+                        ${pendientes.length > 0 ? pendientes.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).map(t => {
+                            const catColor = CATEGORY_COLORS[t.categoria] || '#6b7280';
+                            const edColor = getEdificioColor(t.edificio, this.data.listas?.edificios || []);
+                            return `<div class="task-item">
+                                <div class="task-category" style="background:${catColor}"></div>
+                                <div class="task-info"><h4>${this.escapeHtml(t.actividad)}</h4><p><span class="edificio-tag" style="background:${edColor}20;color:${edColor}">${this.escapeHtml(t.edificio)}</span> · ${this.escapeHtml(t.categoria)}</p></div>
+                                <div style="text-align:right">
+                                    <select class="status-select" onchange="app.quickStatus('tarea','${t.id}',this.value)" style="font-size:11px;padding:4px 8px">
+                                        ${['Pendiente','En Progreso','Completado'].map(e => `<option value="${e}" ${t.estado === e ? 'selected' : ''}>${e}</option>`).join('')}
+                                    </select>
+                                    <br><small style="color:${t.fecha < today ? 'var(--danger)' : 'var(--text-secondary)'}">${this.relativeDate(t.fecha)}</small>
+                                </div>
+                            </div>`;
+                        }).join('') : '<p class="text-center" style="padding:1.5rem;color:var(--text-secondary)"><i class="fas fa-check-circle" style="color:#10b981;font-size:24px;display:block;margin-bottom:8px"></i>Sin tareas pendientes</p>'}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-clipboard-check" style="color:#8b5cf6"></i> Próximas Visitas</h3></div>
+                    <div class="card-body">
+                        ${visitasPend.length > 0 ? visitasPend.sort((a,b) => new Date(a.fecha) - new Date(b.fecha)).slice(0, 5).map(v => {
+                            const edColor = getEdificioColor(v.edificio, this.data.listas?.edificios || []);
+                            return `<div class="task-item">
+                                <div class="task-category" style="background:#8b5cf6"></div>
+                                <div class="task-info"><h4>${this.escapeHtml(v.motivo)}</h4><p><span class="edificio-tag" style="background:${edColor}20;color:${edColor}">${this.escapeHtml(v.edificio)}</span> · ${this.escapeHtml(v.tipo)}</p></div>
+                                <div style="text-align:right"><span class="status-badge status-${v.estado.toLowerCase().replace(' ','')}">${this.escapeHtml(v.estado)}</span><br><small style="color:var(--text-secondary)">${this.relativeDate(v.fecha)}</small></div>
+                            </div>`;
+                        }).join('') : '<p class="text-center" style="padding:1.5rem;color:var(--text-secondary)">Sin visitas programadas</p>'}
+                    </div>
+                </div>
+            </div>`;
+    }
+
     relativeDate(fecha) {
         if (!fecha) return '';
         const today = new Date(); today.setHours(0,0,0,0);
@@ -471,6 +605,16 @@ class MaintenanceApp {
         const edi = document.getElementById('filterEdificio')?.value || '';
         const est = document.getElementById('filterEstado')?.value || '';
         let tareas = [...(this.data.tareas || [])];
+
+        if (getUserRole() === 'Mantenimiento') {
+            const email = this.getCurrentUserEmail();
+            const userName = email.split('@')[0];
+            tareas = tareas.filter(t => {
+                const prov = (t.proveedor || '').toLowerCase();
+                return prov.includes(userName) || t.emailAsignado === email;
+            });
+        }
+
         if (cat) tareas = tareas.filter(t => t.categoria === cat);
         if (edi) tareas = tareas.filter(t => t.edificio === edi);
         if (est) tareas = tareas.filter(t => t.estado === est);
@@ -575,6 +719,16 @@ class MaintenanceApp {
         const tipo = document.getElementById('filterVisitaTipo')?.value || '';
         const est = document.getElementById('filterVisitaEstado')?.value || '';
         let visitas = [...(this.data.visitas || [])];
+
+        if (getUserRole() === 'Mantenimiento') {
+            const email = this.getCurrentUserEmail();
+            const userName = email.split('@')[0];
+            visitas = visitas.filter(v => {
+                const prov = (v.proveedor || '').toLowerCase();
+                return prov.includes(userName) || v.emailAsignado === email;
+            });
+        }
+
         if (edi) visitas = visitas.filter(v => v.edificio === edi);
         if (tipo) visitas = visitas.filter(v => v.tipo === tipo);
         if (est) visitas = visitas.filter(v => v.estado === est);
