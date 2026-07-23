@@ -59,8 +59,6 @@ class MaintenanceApp {
                 if (userName) userName.textContent = user.email.split('@')[0];
                 if (userRole) userRole.textContent = role;
 
-                this.applyRolePermissions(role);
-
                 await this.loadData();
                 await quoteManager.init();
                 this.populateFilters();
@@ -68,6 +66,7 @@ class MaintenanceApp {
                 this.renderDashboard();
                 this.updateSidebarBadges();
                 this.updateNotificationBadge();
+                this.applyRolePermissions(role);
             } else {
                 // User is not logged in
                 loginOverlay.style.display = 'flex';
