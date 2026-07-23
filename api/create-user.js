@@ -5,7 +5,7 @@ let initialized = false;
 function initAdmin() {
     if (initialized) return;
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
-    if (serviceAccount.projectId) {
+    if (serviceAccount.project_id) {
         admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
         initialized = true;
     }
