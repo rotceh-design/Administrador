@@ -264,7 +264,7 @@ class MaintenanceApp {
 
     applyRolePermissions(role) {
         const fmSections = ['dashboard', 'tareas', 'cronograma', 'gantt', 'visitas', 'incidencias', 'informes', 'equipo', 'proveedores', 'fotos', 'emails', 'cotizaciones', 'reportes', 'config'];
-        const mttoSections = ['dashboard', 'tareas', 'cronograma', 'gantt', 'visitas', 'informes', 'fotos'];
+        const mttoSections = ['dashboard', 'tareas', 'cronograma', 'gantt', 'visitas', 'incidencias', 'informes', 'fotos', 'emails', 'cotizaciones'];
 
         const allowedSections = role === 'Mantenimiento' ? mttoSections : fmSections;
 
@@ -305,7 +305,7 @@ class MaintenanceApp {
     navigateTo(section) {
         const role = getUserRole();
         const fmSections = ['dashboard', 'tareas', 'cronograma', 'gantt', 'visitas', 'incidencias', 'informes', 'equipo', 'proveedores', 'fotos', 'emails', 'cotizaciones', 'reportes', 'config'];
-        const mttoSections = ['dashboard', 'tareas', 'cronograma', 'gantt', 'visitas', 'informes', 'fotos'];
+        const mttoSections = ['dashboard', 'tareas', 'cronograma', 'gantt', 'visitas', 'incidencias', 'informes', 'fotos', 'emails', 'cotizaciones'];
         const allowedSections = role === 'Mantenimiento' ? mttoSections : fmSections;
 
         if (!allowedSections.includes(section)) {
@@ -2037,7 +2037,10 @@ class MaintenanceApp {
         const section = this.currentSection;
         const role = getUserRole();
         if (role === 'Mantenimiento') {
-            if (section === 'visitas') this.showModal('Nueva Visita', this.getVisitaForm(), () => this.saveVisita());
+            if (section === 'tareas') this.showModal('Nueva Tarea', this.getTareaForm(), () => this.saveTarea());
+            else if (section === 'visitas') this.showModal('Nueva Visita', this.getVisitaForm(), () => this.saveVisita());
+            else if (section === 'incidencias') this.showModal('Nueva Incidencia', this.getIncidenciaForm(), () => this.saveIncidencia());
+            else if (section === 'cotizaciones') quoteManager.openNewQuote();
             else if (section === 'informes') this.showNewInformeModal();
             return;
         }
@@ -2053,8 +2056,14 @@ class MaintenanceApp {
     showAddModal() {
         const role = getUserRole();
         if (role === 'Mantenimiento') {
-            if (this.currentSection === 'visitas') {
+            if (this.currentSection === 'tareas') {
+                this.showModal('Nueva Tarea', this.getTareaForm(), () => this.saveTarea());
+            } else if (this.currentSection === 'visitas') {
                 this.showModal('Nueva Visita', this.getVisitaForm(), () => this.saveVisita());
+            } else if (this.currentSection === 'incidencias') {
+                this.showModal('Nueva Incidencia', this.getIncidenciaForm(), () => this.saveIncidencia());
+            } else if (this.currentSection === 'cotizaciones') {
+                quoteManager.openNewQuote();
             } else if (this.currentSection === 'informes') {
                 this.showNewInformeModal();
             }
