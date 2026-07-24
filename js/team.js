@@ -595,6 +595,7 @@ class TeamManager {
         app.closeModal();
         app.renderTareas();
         app.showToast(`${pers.nombre} ${pers.apellido} asignado a la tarea`, 'success');
+        app.sendNotification('Tarea asignada', `${pers.nombre} ${pers.apellido} fue asignado a: ${tarea.actividad}`);
     }
 }
 

@@ -67,6 +67,7 @@ class MaintenanceApp {
                 this.updateSidebarBadges();
                 this.updateNotificationBadge();
                 this.applyRolePermissions(role);
+                this.requestNotificationPermission();
             } else {
                 // User is not logged in
                 loginOverlay.style.display = 'flex';
@@ -299,6 +300,18 @@ class MaintenanceApp {
 
         if (!allowedSections.includes(this.currentSection)) {
             this.navigateTo(role === 'Mantenimiento' ? 'dashboard' : allowedSections[0] || 'dashboard');
+        }
+    }
+
+    requestNotificationPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }
+
+    sendNotification(titulo, cuerpo) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(titulo, { body: cuerpo, icon: '/img/icon.png' });
         }
     }
 
@@ -630,6 +643,9 @@ class MaintenanceApp {
                 <td><select class="status-select" onchange="app.quickStatus('tarea','${t.id}',this.value)">${(this.data.listas.estados || []).map(e => `<option value="${e}" ${t.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></td>
                 <td class="actions-cell">
                     ${t.emails && t.emails.length ? `<button class="btn-sm" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640" onclick="app.showRecordEmails('tarea','${t.id}')" title="${t.emails.length} correo(s)"><i class="fas fa-envelope"></i> ${t.emails.length}</button>` : ''}
+                    <button class="btn-sm" style="background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b40" onclick="app.openTaskPhotos('${t.id}')" title="Fotos before/after"><i class="fas fa-camera"></i>${(t.fotos||[]).length ? ' '+(t.fotos||[]).length : ''}</button>
+                    <button class="btn-sm" style="background:#06b6d420;color:#06b6d4;border:1px solid #06b6d440" onclick="app.openTaskComments('${t.id}')" title="Comentarios"><i class="fas fa-comment"></i>${(t.comentarios||[]).length ? ' '+(t.comentarios||[]).length : ''}</button>
+                    <button class="btn-sm" style="background:#10b98120;color:#10b981;border:1px solid #10b98140" onclick="app.openMaterialRequest('${t.id}')" title="Pedir material"><i class="fas fa-box-open"></i></button>
                     <button class="btn-sm" style="background:#06b6d420;color:#06b6d4;border:1px solid #06b6d440" onclick="teamManager.showAssignModal('${t.id}')" title="Asignar personal"><i class="fas fa-user-plus"></i></button>
                     ${getUserRole() === 'Facility Manager' ? `
                     <button class="btn-success btn-sm" onclick="app.editTarea('${t.id}')"><i class="fas fa-edit"></i></button>
@@ -689,6 +705,177 @@ class MaintenanceApp {
     editTarea(id) { const t = this.data.tareas.find(x => x.id === id); if (t) this.showModal('Editar Tarea', this.getTareaForm(t), () => this.saveTarea(t.id)); }
     async deleteTarea(id) { if (!confirm('¿Eliminar tarea?')) return; this.data.tareas = this.data.tareas.filter(t => t.id !== id); await db.delete('tareas', id); this.renderTareas(); this.updateSidebarBadges(); this.showToast('Tarea eliminada', 'success'); }
 
+    // =================== FOTOS BEFORE/AFTER EN TAREAS ===================
+    openTaskPhotos(taskId) {
+        const tarea = this.data.tareas.find(t => t.id === taskId);
+        if (!tarea) return;
+        const fotos = tarea.fotos || [];
+
+        const html = `
+            <div>
+                <p style="font-size:13px;color:#64748b;margin-bottom:12px">Adjunta fotos del antes y después del trabajo realizado.</p>
+                <div class="task-photos-grid" id="taskPhotosGrid" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+                    ${fotos.map((f, i) => `
+                        <div class="task-photo-item" style="position:relative;width:100px;height:100px;border-radius:8px;overflow:hidden;border:2px solid ${f.tipo === 'antes' ? '#f59e0b' : '#10b981'}">
+                            <img src="${f.dataUrl}" alt="${f.tipo}" style="width:100%;height:100%;object-fit:cover">
+                            <span style="position:absolute;bottom:0;left:0;right:0;text-align:center;background:${f.tipo === 'antes' ? '#f59e0b' : '#10b981'};color:#fff;font-size:9px;font-weight:700;padding:2px">${f.tipo.toUpperCase()}</span>
+                            <button onclick="app.removeTaskPhoto('${taskId}',${i})" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:#ef4444;color:#fff;border:none;font-size:10px;cursor:pointer">&times;</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="display:flex;gap:8px">
+                    <label class="task-photo-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:12px;border:2px dashed #f59e0b;border-radius:8px;cursor:pointer;color:#f59e0b;gap:4px">
+                        <i class="fas fa-camera" style="font-size:20px"></i>
+                        <span style="font-size:11px;font-weight:700">ANTES</span>
+                        <input type="file" accept="image/*" style="display:none" onchange="app.addTaskPhoto('${taskId}','antes',this)">
+                    </label>
+                    <label class="task-photo-btn" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:12px;border:2px dashed #10b981;border-radius:8px;cursor:pointer;color:#10b981;gap:4px">
+                        <i class="fas fa-camera" style="font-size:20px"></i>
+                        <span style="font-size:11px;font-weight:700">DESPUÉS</span>
+                        <input type="file" accept="image/*" style="display:none" onchange="app.addTaskPhoto('${taskId}','despues',this)">
+                    </label>
+                </div>
+            </div>`;
+
+        this.showModal(`Fotos — ${tarea.actividad}`, html, null);
+        document.getElementById('modalSave').style.display = 'none';
+    }
+
+    async addTaskPhoto(taskId, tipo, input) {
+        const file = input.files[0];
+        if (!file) return;
+        const tarea = this.data.tareas.find(t => t.id === taskId);
+        if (!tarea) return;
+        if (!tarea.fotos) tarea.fotos = [];
+
+        const dataUrl = await this._fileToCompressedBase64(file, 800, 0.7);
+        tarea.fotos.push({ tipo, dataUrl, fecha: new Date().toISOString(), nombre: file.name });
+        tarea.updatedAt = new Date().toISOString();
+        await db.put('tareas', tarea);
+
+        this.openTaskPhotos(taskId);
+        this.showToast(`Foto ${tipo} agregada`, 'success');
+    }
+
+    async removeTaskPhoto(taskId, index) {
+        const tarea = this.data.tareas.find(t => t.id === taskId);
+        if (!tarea || !tarea.fotos) return;
+        tarea.fotos.splice(index, 1);
+        tarea.updatedAt = new Date().toISOString();
+        await db.put('tareas', tarea);
+        this.openTaskPhotos(taskId);
+    }
+
+    // =================== COMENTARIOS EN TAREAS ===================
+    openTaskComments(taskId) {
+        const tarea = this.data.tareas.find(t => t.id === taskId);
+        if (!tarea) return;
+        const comentarios = tarea.comentarios || [];
+        const userName = this.getUserName();
+
+        const html = `
+            <div>
+                <div id="taskCommentsList" style="max-height:300px;overflow-y:auto;margin-bottom:12px">
+                    ${comentarios.length ? comentarios.map(c => `
+                        <div style="display:flex;gap:10px;padding:10px;border-bottom:1px solid #f1f5f9">
+                            <div style="width:32px;height:32px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#475569;flex-shrink:0">${(c.autor || '?')[0].toUpperCase()}</div>
+                            <div style="flex:1">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+                                    <strong style="font-size:12px;color:#1e293b">${this.escapeHtml(c.autor)}</strong>
+                                    <small style="font-size:10px;color:#94a3b8">${this.relativeDateTime(c.fecha)}</small>
+                                </div>
+                                <p style="font-size:13px;color:#475569;margin:0">${this.escapeHtml(c.texto)}</p>
+                            </div>
+                        </div>
+                    `).join('') : '<p style="color:#94a3b8;text-align:center;padding:20px">Sin comentarios aún</p>'}
+                </div>
+                <div style="display:flex;gap:8px">
+                    <input type="text" id="newCommentInput" placeholder="Escribe un comentario..." style="flex:1;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onkeydown="if(event.key==='Enter')app.addTaskComment('${taskId}')">
+                    <button class="btn-primary btn-sm" onclick="app.addTaskComment('${taskId}')"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>`;
+
+        this.showModal(`Comentarios — ${tarea.actividad}`, html, null);
+        document.getElementById('modalSave').style.display = 'none';
+    }
+
+    async addTaskComment(taskId) {
+        const input = document.getElementById('newCommentInput');
+        const texto = input?.value.trim();
+        if (!texto) return;
+
+        const tarea = this.data.tareas.find(t => t.id === taskId);
+        if (!tarea) return;
+        if (!tarea.comentarios) tarea.comentarios = [];
+
+        tarea.comentarios.push({
+            autor: this.getUserName(),
+            texto,
+            fecha: new Date().toISOString()
+        });
+        tarea.updatedAt = new Date().toISOString();
+        await db.put('tareas', tarea);
+
+        this.openTaskComments(taskId);
+        this.showToast('Comentario agregado', 'success');
+    }
+
+    // =================== PEDIDO DE MATERIALES ===================
+    openMaterialRequest(taskId) {
+        const tarea = this.data.tareas.find(t => t.id === taskId);
+        if (!tarea) return;
+        const materiales = tarea.materiales || [];
+
+        const html = `
+            <div>
+                <p style="font-size:13px;color:#64748b;margin-bottom:12px">Registra los materiales necesarios para esta tarea.</p>
+                <div id="materialsList" style="margin-bottom:12px">
+                    ${materiales.map((m, i) => `
+                        <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#f8fafc;border-radius:6px;margin-bottom:6px;border:1px solid #e2e8f0">
+                            <span style="flex:1;font-size:13px;font-weight:500">${this.escapeHtml(m.nombre)}</span>
+                            <span style="font-size:12px;color:#64748b">x${m.cantidad}</span>
+                            <span style="font-size:11px;padding:2px 6px;border-radius:4px;background:${m.estado === 'Pendiente' ? '#fef3c7' : m.estado === 'Aprobado' ? '#dcfce7' : '#fee2e2'};color:${m.estado === 'Pendiente' ? '#d97706' : m.estado === 'Aprobado' ? '#16a34a' : '#991b1b'};font-weight:600">${m.estado}</span>
+                            <button onclick="app.removeMaterial('${taskId}',${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:12px"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `).join('') || '<p style="color:#94a3b8;text-align:center;padding:10px;font-size:13px">Sin materiales registrados</p>'}
+                </div>
+                <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;align-items:end">
+                    <div class="form-group" style="margin:0"><label>Material</label><input type="text" id="newMaterialName" placeholder="Ej: Tornillos, Pintura..." style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none"></div>
+                    <div class="form-group" style="margin:0"><label>Cant.</label><input type="number" id="newMaterialQty" value="1" min="1" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;outline:none"></div>
+                </div>
+                <button class="btn-primary btn-sm" style="margin-top:8px" onclick="app.addMaterial('${taskId}')"><i class="fas fa-plus"></i> Agregar</button>
+            </div>`;
+
+        this.showModal(`Materiales — ${tarea.actividad}`, html, null);
+        document.getElementById('modalSave').style.display = 'none';
+    }
+
+    async addMaterial(taskId) {
+        const nombre = document.getElementById('newMaterialName')?.value.trim();
+        const cantidad = parseInt(document.getElementById('newMaterialQty')?.value) || 1;
+        if (!nombre) return;
+
+        const tarea = this.data.tareas.find(t => t.id === taskId);
+        if (!tarea) return;
+        if (!tarea.materiales) tarea.materiales = [];
+
+        tarea.materiales.push({ nombre, cantidad, estado: 'Pendiente', fecha: new Date().toISOString() });
+        tarea.updatedAt = new Date().toISOString();
+        await db.put('tareas', tarea);
+
+        this.openMaterialRequest(taskId);
+        this.showToast('Material agregado', 'success');
+    }
+
+    async removeMaterial(taskId, index) {
+        const tarea = this.data.tareas.find(t => t.id === taskId);
+        if (!tarea || !tarea.materiales) return;
+        tarea.materiales.splice(index, 1);
+        tarea.updatedAt = new Date().toISOString();
+        await db.put('tareas', tarea);
+        this.openMaterialRequest(taskId);
+    }
+
     async quickStatus(type, id, newStatus) {
         try {
             let item, store;
@@ -706,6 +893,9 @@ class MaintenanceApp {
             this.updateSidebarBadges();
             this.renderDashboard();
             this.showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} → ${newStatus}`, 'success');
+            if (newStatus === 'Completado') {
+                this.sendNotification('Tarea completada', `${item.actividad || item.descripcion || 'Actividad'} marcada como completada`);
+            }
         } catch (err) {
             console.error('Error cambiando estado:', err);
             this.showToast('Error al cambiar estado', 'error');
@@ -1811,6 +2001,15 @@ class MaintenanceApp {
                     <input type="file" id="informePhotoInput" accept="image/*" multiple style="display:none" onchange="app.handleInformePhotos(event)">
                 </div>
             </div>
+            <div class="form-group">
+                <label><i class="fas fa-pen-firma"></i> Firma del Técnico</label>
+                <p style="font-size:11px;color:#64748b;margin-bottom:8px">Dibuja tu firma con el mouse o dedo en el recuadro.</p>
+                <div class="signature-container" style="border:2px solid #e2e8f0;border-radius:10px;background:#fff;position:relative">
+                    <canvas id="signatureCanvas" width="500" height="150" style="width:100%;height:150px;cursor:crosshair;display:block;border-radius:8px"></canvas>
+                    <button type="button" onclick="app.clearSignature()" style="position:absolute;top:6px;right:6px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;font-size:11px;cursor:pointer;color:#64748b"><i class="fas fa-eraser"></i> Limpiar</button>
+                </div>
+                <input type="hidden" id="informeFirma" value="${inf?.firma || ''}">
+            </div>
         </form>`;
     }
 
@@ -1829,6 +2028,52 @@ class MaintenanceApp {
     showNewInformeModal() {
         this._informePhotos = [];
         this.showModal('Nuevo Informe Diario', this.getInformeForm(), () => this.saveInforme());
+        setTimeout(() => this._initSignatureCanvas(), 100);
+    }
+
+    _initSignatureCanvas() {
+        const canvas = document.getElementById('signatureCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+        let lastX = 0, lastY = 0;
+
+        const getPos = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+        };
+
+        const startDraw = (e) => { e.preventDefault(); drawing = true; const p = getPos(e); lastX = p.x; lastY = p.y; };
+        const draw = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(); lastX = p.x; lastY = p.y; };
+        const endDraw = () => { drawing = false; const firmaInput = document.getElementById('informeFirma'); if (firmaInput) firmaInput.value = canvas.toDataURL('image/png'); };
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('mouseleave', endDraw);
+        canvas.addEventListener('touchstart', startDraw, { passive: false });
+        canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchend', endDraw);
+
+        const firmaInput = document.getElementById('informeFirma');
+        if (firmaInput && firmaInput.value) {
+            const img = new Image();
+            img.onload = () => { ctx.drawImage(img, 0, 0, canvas.width, canvas.height); };
+            img.src = firmaInput.value;
+        }
+    }
+
+    clearSignature() {
+        const canvas = document.getElementById('signatureCanvas');
+        if (canvas) {
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+            const firmaInput = document.getElementById('informeFirma');
+            if (firmaInput) firmaInput.value = '';
+        }
     }
 
     async handleInformePhotos(event) {
@@ -1894,7 +2139,9 @@ class MaintenanceApp {
                 descripcion: this.gv('informeDescripcion'), observaciones: this.gv('informeObservaciones'),
                 pendientes: this.gv('informePendientes'),
                 tareasResumen: getTareas(), visitasResumen: getVisitas(), incidenciasResumen: getIncidencias(),
-                fotos: fotos
+                fotos: fotos,
+                firma: this.gv('informeFirma'),
+                autor: this.getUserName()
             };
             if (id) { const i = this.data.informesDiarios.findIndex(x => x.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); if (this.data.informesDiarios[i].fotos && !fotos.length) d.fotos = this.data.informesDiarios[i].fotos; this.data.informesDiarios[i] = { ...this.data.informesDiarios[i], ...d }; await db.put('informesDiarios', this.data.informesDiarios[i]); } }
             else { d.id = 'INF-' + Date.now(); d.createdAt = new Date().toISOString(); this.data.informesDiarios.push(d); await db.put('informesDiarios', d); }
@@ -1903,7 +2150,7 @@ class MaintenanceApp {
         } catch (err) { console.error('Error guardando informe:', err); this.showToast('Error al guardar', 'error'); }
     }
 
-    editInforme(id) { const i = this.data.informesDiarios.find(x => x.id === id); if (i) { this._informePhotos = i.fotos ? [...i.fotos] : []; this.showModal('Editar Informe', this.getInformeForm(i), () => this.saveInforme(i.id)); } }
+    editInforme(id) { const i = this.data.informesDiarios.find(x => x.id === id); if (i) { this._informePhotos = i.fotos ? [...i.fotos] : []; this.showModal('Editar Informe', this.getInformeForm(i), () => this.saveInforme(i.id)); setTimeout(() => this._initSignatureCanvas(), 100); } }
     async deleteInforme(id) { if (!confirm('¿Eliminar informe?')) return; this.data.informesDiarios = this.data.informesDiarios.filter(i => i.id !== id); await db.delete('informesDiarios', id); this.renderInformes(); this.showToast('Informe eliminado', 'success'); }
 
     printInforme(id) {
@@ -1981,6 +2228,7 @@ class MaintenanceApp {
             ${fotosHTML}
             ${inf.observaciones ? `<div class="text-block obs"><h4><i class="fas fa-sticky-note"></i> Observaciones</h4><p>${inf.observaciones}</p></div>` : ''}
             ${inf.pendientes ? `<div class="text-block pend"><h4><i class="fas fa-clock"></i> Pendientes para Próximas Fechas</h4><p>${inf.pendientes}</p></div>` : ''}
+            ${inf.firma ? `<div style="margin:24px 0;text-align:center"><p style="font-size:12px;color:#64748b;margin-bottom:8px">Firma del Técnico:</p><img src="${inf.firma}" style="max-height:80px;border:1px solid #e2e8f0;border-radius:8px;padding:8px;background:#fff"><p style="font-size:11px;color:#94a3b8;margin-top:4px">${inf.autor || ''}</p></div>` : ''}
             <div class="footer">
                 <span>Facility Management · Informe #${inf.id}</span>
                 <span>${printDate} ${printTime}</span>
