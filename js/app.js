@@ -1802,6 +1802,15 @@ class MaintenanceApp {
             ${dayIncidencias.length ? `<div class="form-group"><label><i class="fas fa-exclamation-triangle"></i> Incidencias del día</label><div class="informe-check-list" id="infIncidenciasList">${autoIncidencias || ''}</div></div>` : ''}
             <div class="form-group"><label><i class="fas fa-clock"></i> Pendientes para próximas fechas</label><textarea id="informePendientes" rows="2" placeholder="Tareas pendientes, visitas futuras...">${inf?.pendientes || ''}</textarea>${pendientesHTML}</div>
             <div class="form-group"><label><i class="fas fa-sticky-note"></i> Observaciones</label><textarea id="informeObservaciones" rows="2" placeholder="Notas adicionales...">${inf?.observaciones || ''}</textarea></div>
+            <div class="form-group">
+                <label><i class="fas fa-camera"></i> Imágenes del Informe</label>
+                <p style="font-size:11px;color:#64748b;margin-bottom:8px">Adjunta fotos del trabajo realizado, evidencias, etc.</p>
+                <div class="informe-photos-area" id="informePhotosArea">
+                    <div class="informe-photos-grid" id="informePhotosGrid">${(inf?.fotos || []).map((f, i) => `<div class="informe-photo-item"><img src="${f.dataUrl || f.url}" alt="${f.nombre}"><button type="button" class="informe-photo-remove" onclick="app.removeInformePhoto(${i})">&times;</button></div>`).join('')}</div>
+                    <label class="informe-photo-add" for="informePhotoInput"><i class="fas fa-plus"></i><span>Agregar fotos</span></label>
+                    <input type="file" id="informePhotoInput" accept="image/*" multiple style="display:none" onchange="app.handleInformePhotos(event)">
+                </div>
+            </div>
         </form>`;
     }
 
@@ -1818,7 +1827,58 @@ class MaintenanceApp {
     }
 
     showNewInformeModal() {
+        this._informePhotos = [];
         this.showModal('Nuevo Informe Diario', this.getInformeForm(), () => this.saveInforme());
+    }
+
+    async handleInformePhotos(event) {
+        const files = event.target.files;
+        if (!files.length) return;
+        if (!this._informePhotos) this._informePhotos = [];
+
+        for (const file of files) {
+            if (file.size > 5 * 1024 * 1024) {
+                this.showToast(`${file.name} excede 5MB`, 'warning');
+                continue;
+            }
+            const dataUrl = await this._fileToCompressedBase64(file, 800, 0.7);
+            this._informePhotos.push({ nombre: file.name, dataUrl, fecha: new Date().toISOString() });
+        }
+
+        const grid = document.getElementById('informePhotosGrid');
+        if (grid) {
+            grid.innerHTML = this._informePhotos.map((f, i) => `<div class="informe-photo-item"><img src="${f.dataUrl}" alt="${f.nombre}"><button type="button" class="informe-photo-remove" onclick="app.removeInformePhoto(${i})">&times;</button></div>`).join('');
+        }
+        event.target.value = '';
+    }
+
+    _fileToCompressedBase64(file, maxWidth, quality) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    if (w > maxWidth) { h = (maxWidth / w) * h; w = maxWidth; }
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    removeInformePhoto(index) {
+        if (!this._informePhotos) this._informePhotos = [];
+        this._informePhotos.splice(index, 1);
+        const grid = document.getElementById('informePhotosGrid');
+        if (grid) {
+            grid.innerHTML = this._informePhotos.map((f, i) => `<div class="informe-photo-item"><img src="${f.dataUrl}" alt="${f.nombre}"><button type="button" class="informe-photo-remove" onclick="app.removeInformePhoto(${i})">&times;</button></div>`).join('');
+        }
     }
 
     async saveInforme(id = null) {
@@ -1827,53 +1887,104 @@ class MaintenanceApp {
             const getVisitas = () => Array.from(document.querySelectorAll('.inf-visita-check')).map(el => ({ texto: el.dataset.text, completada: el.checked }));
             const getIncidencias = () => Array.from(document.querySelectorAll('.inf-incidencia-check')).map(el => ({ texto: el.dataset.text, completada: el.checked }));
 
+            const fotos = this._informePhotos || [];
+
             const d = {
                 edificio: this.gv('informeEdificio'), fecha: this.gv('informeFecha'), titulo: this.gv('informeTitulo'),
                 descripcion: this.gv('informeDescripcion'), observaciones: this.gv('informeObservaciones'),
                 pendientes: this.gv('informePendientes'),
-                tareasResumen: getTareas(), visitasResumen: getVisitas(), incidenciasResumen: getIncidencias()
+                tareasResumen: getTareas(), visitasResumen: getVisitas(), incidenciasResumen: getIncidencias(),
+                fotos: fotos
             };
-            if (id) { const i = this.data.informesDiarios.findIndex(x => x.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); this.data.informesDiarios[i] = { ...this.data.informesDiarios[i], ...d }; await db.put('informesDiarios', this.data.informesDiarios[i]); } }
+            if (id) { const i = this.data.informesDiarios.findIndex(x => x.id === id); if (i !== -1) { d.id = id; d.updatedAt = new Date().toISOString(); if (this.data.informesDiarios[i].fotos && !fotos.length) d.fotos = this.data.informesDiarios[i].fotos; this.data.informesDiarios[i] = { ...this.data.informesDiarios[i], ...d }; await db.put('informesDiarios', this.data.informesDiarios[i]); } }
             else { d.id = 'INF-' + Date.now(); d.createdAt = new Date().toISOString(); this.data.informesDiarios.push(d); await db.put('informesDiarios', d); }
+            this._informePhotos = [];
             this.closeModal(); this.renderInformes(); this.showToast(id ? 'Informe actualizado' : 'Informe creado', 'success');
         } catch (err) { console.error('Error guardando informe:', err); this.showToast('Error al guardar', 'error'); }
     }
 
-    editInforme(id) { const i = this.data.informesDiarios.find(x => x.id === id); if (i) this.showModal('Editar Informe', this.getInformeForm(i), () => this.saveInforme(i.id)); }
+    editInforme(id) { const i = this.data.informesDiarios.find(x => x.id === id); if (i) { this._informePhotos = i.fotos ? [...i.fotos] : []; this.showModal('Editar Informe', this.getInformeForm(i), () => this.saveInforme(i.id)); } }
     async deleteInforme(id) { if (!confirm('¿Eliminar informe?')) return; this.data.informesDiarios = this.data.informesDiarios.filter(i => i.id !== id); await db.delete('informesDiarios', id); this.renderInformes(); this.showToast('Informe eliminado', 'success'); }
 
     printInforme(id) {
         const inf = this.data.informesDiarios.find(x => x.id === id);
         if (!inf) return;
         const edColor = getEdificioColor(inf.edificio, this.data.listas?.edificios);
-        const section = (title, icon, items, color) => items?.length ? `<div class="section"><h3><i class="${icon}"></i> ${title}</h3><ul>${items.map(i => `<li style="border-left-color:${i.completada ? '#10b981' : color}"><span class="dot" style="background:${i.completada ? '#10b981' : color}"></span>${i.texto} ${i.completada ? '✓' : ''}</li>`).join('')}</ul></div>` : '';
+        const section = (title, icon, items, color) => items?.length ? `<div class="section"><h3><i class="${icon}"></i> ${title}</h3><ul>${items.map(i => `<li style="border-left-color:${i.completada ? '#10b981' : color}"><span class="dot" style="background:${i.completada ? '#10b981' : color}"></span>${i.texto} ${i.completada ? '<span class="done-tag">✓ Completado</span>' : '<span class="pending-tag">Pendiente</span>'}</li>`).join('')}</ul></div>` : '';
+
+        const fotos = inf.fotos || [];
+        let fotosHTML = '';
+        if (fotos.length > 0) {
+            fotosHTML = `<div class="section"><h3><i class="fas fa-camera"></i> Evidencia Fotográfica (${fotos.length})</h3>
+                <div class="photos-grid">${fotos.map((f, i) => `<div class="photo-item"><img src="${f.dataUrl || f.url}" alt="Evidencia ${i + 1}"><span class="photo-label">Foto ${i + 1}</span></div>`).join('')}</div></div>`;
+        }
+
+        const now = new Date();
+        const printDate = now.toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const printTime = now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
 
         const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-            body{font-family:Arial,sans-serif;margin:30px;color:#1e293b;line-height:1.6}
-            .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid ${edColor};padding-bottom:12px;margin-bottom:20px}
-            h1{font-size:22px;margin:0} h2{font-size:14px;color:#64748b;margin:4px 0 0}
-            .tag{background:${edColor};color:white;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600}
-            .stats{display:flex;gap:20px;margin:16px 0;padding:12px;background:#f8fafc;border-radius:8px}
-            .stat{text-align:center} .stat strong{font-size:24px;display:block;color:${edColor}} .stat span{font-size:12px;color:#64748b}
-            .section{margin:16px 0} .section h3{font-size:14px;color:#475569;border-bottom:1px solid #e2e8f0;padding-bottom:6px}
-            ul{list-style:none;padding:0} li{padding:6px 12px;border-left:3px solid #ccc;margin:4px 0;background:#f8fafc;border-radius:0 4px 4px 0;font-size:13px}
-            .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
-            .obs,.pend{margin:16px 0;padding:12px;border-radius:8px;font-size:13px}
-            .obs{background:#fffbeb;border:1px solid #fde68a} .pend{background:#fef2f2;border:1px solid #fecaca}
-            @media print{body{margin:15px}}
+            *{box-sizing:border-box;margin:0;padding:0}
+            body{font-family:'Segoe UI',Arial,sans-serif;color:#1e293b;line-height:1.6;padding:30px;font-size:13px}
+            .page-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid ${edColor};padding-bottom:16px;margin-bottom:24px}
+            .page-header h1{font-size:24px;color:#1e293b;margin-bottom:2px}
+            .page-header .subtitle{font-size:13px;color:#64748b}
+            .tag{background:${edColor};color:white;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:700}
+            .meta-row{display:flex;gap:24px;margin-bottom:20px;padding:12px 16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0}
+            .meta-item{font-size:12px;color:#475569} .meta-item strong{color:#1e293b}
+            .stats{display:flex;gap:16px;margin:20px 0}
+            .stat-card{flex:1;text-align:center;padding:14px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0}
+            .stat-card strong{font-size:28px;display:block;color:${edColor}} .stat-card span{font-size:11px;color:#64748b;font-weight:600}
+            .section{margin:20px 0}
+            .section h3{font-size:14px;color:#334155;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+            .section h3 i{color:${edColor}}
+            ul{list-style:none;padding:0}
+            li{padding:8px 14px;border-left:4px solid #ccc;margin:6px 0;background:#f8fafc;border-radius:0 6px 6px 0;font-size:13px;display:flex;align-items:center;gap:8px}
+            .dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
+            .done-tag{background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:auto}
+            .pending-tag{background:#fef3c7;color:#d97706;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:auto}
+            .text-block{margin:16px 0;padding:14px 16px;border-radius:8px;font-size:13px;line-height:1.7}
+            .text-block h4{font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+            .resumen{background:#eff6ff;border:1px solid #bfdbfe} .resumen h4{color:#1e40af}
+            .obs{background:#fffbeb;border:1px solid #fde68a} .obs h4{color:#92400e}
+            .pend{background:#fef2f2;border:1px solid #fecaca} .pend h4{color:#991b1b}
+            .photos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px}
+            .photo-item{border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;background:#000}
+            .photo-item img{width:100%;height:160px;object-fit:cover;display:block}
+            .photo-label{display:block;text-align:center;padding:4px;font-size:10px;color:#64748b;background:#f8fafc}
+            .footer{margin-top:30px;padding-top:12px;border-top:2px solid #e2e8f0;display:flex;justify-content:space-between;font-size:11px;color:#94a3b8}
+            @media print{body{padding:20px;font-size:12px}.photo-item img{height:140px}}
         </style></head><body>
-            <div class="header"><div><h1>${inf.titulo}</h1><h2>Facility Management · ${this.formatDate(inf.fecha)}</h2></div><span class="tag">${inf.edificio}</span></div>
-            <div class="stats">
-                <div class="stat"><strong>${inf.tareasResumen?.length || 0}</strong><span>Tareas</span></div>
-                <div class="stat"><strong>${inf.visitasResumen?.length || 0}</strong><span>Visitas</span></div>
-                <div class="stat"><strong>${inf.incidenciasResumen?.length || 0}</strong><span>Incidencias</span></div>
+            <div class="page-header">
+                <div>
+                    <h1>${inf.titulo}</h1>
+                    <div class="subtitle">Facility Management · Informe de Actividades Diarias</div>
+                </div>
+                <span class="tag">${inf.edificio}</span>
             </div>
-            ${inf.descripcion ? `<div class="section"><h3>Resumen</h3><p>${inf.descripcion}</p></div>` : ''}
-            ${section('Tareas del día', 'fa-tasks', inf.tareasResumen, '#3b82f6')}
-            ${section('Visitas realizadas', 'fa-clipboard-check', inf.visitasResumen, '#8b5cf6')}
+            <div class="meta-row">
+                <div class="meta-item"><strong>Fecha:</strong> ${this.formatDate(inf.fecha)}</div>
+                <div class="meta-item"><strong>CIRION:</strong> ${inf.edificio}</div>
+                <div class="meta-item"><strong>Generado:</strong> ${printDate} ${printTime}</div>
+            </div>
+            <div class="stats">
+                <div class="stat-card"><strong>${inf.tareasResumen?.length || 0}</strong><span>TAREAS</span></div>
+                <div class="stat-card"><strong>${inf.tareasResumen?.filter(t => t.completada).length || 0}</strong><span>COMPLETADAS</span></div>
+                <div class="stat-card"><strong>${inf.visitasResumen?.length || 0}</strong><span>VISITAS</span></div>
+                <div class="stat-card"><strong>${inf.incidenciasResumen?.length || 0}</strong><span>INCIDENCIAS</span></div>
+                <div class="stat-card"><strong>${fotos.length}</strong><span>FOTOS</span></div>
+            </div>
+            ${inf.descripcion ? `<div class="text-block resumen"><h4><i class="fas fa-align-left"></i> Resumen General</h4><p>${inf.descripcion}</p></div>` : ''}
+            ${section('Tareas del Día', 'fa-tasks', inf.tareasResumen, '#3b82f6')}
+            ${section('Visitas Realizadas', 'fa-clipboard-check', inf.visitasResumen, '#8b5cf6')}
             ${section('Incidencias', 'fa-exclamation-triangle', inf.incidenciasResumen, '#ef4444')}
-            ${inf.pendientes ? `<div class="pend"><h3 style="margin:0 0 8px;font-size:14px"><i class="fas fa-clock"></i> Pendientes</h3><p style="margin:0">${inf.pendientes}</p></div>` : ''}
-            ${inf.observaciones ? `<div class="obs"><h3 style="margin:0 0 8px;font-size:14px"><i class="fas fa-sticky-note"></i> Observaciones</h3><p style="margin:0">${inf.observaciones}</p></div>` : ''}
+            ${fotosHTML}
+            ${inf.observaciones ? `<div class="text-block obs"><h4><i class="fas fa-sticky-note"></i> Observaciones</h4><p>${inf.observaciones}</p></div>` : ''}
+            ${inf.pendientes ? `<div class="text-block pend"><h4><i class="fas fa-clock"></i> Pendientes para Próximas Fechas</h4><p>${inf.pendientes}</p></div>` : ''}
+            <div class="footer">
+                <span>Facility Management · Informe #${inf.id}</span>
+                <span>${printDate} ${printTime}</span>
+            </div>
         </body></html>`;
         const w = window.open('', '_blank');
         w.document.write(html);
