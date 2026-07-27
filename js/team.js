@@ -34,7 +34,7 @@ class TeamManager {
         const busqueda = document.getElementById('filterTeamSearch')?.value?.toLowerCase() || '';
 
         let filtered = [...personal];
-        if (edificio) filtered = filtered.filter(p => p.edificioAsignado === edificio);
+        if (edificio) filtered = filtered.filter(p => (p.edificiosAsignados || []).includes(edificio) || p.edificioAsignado === edificio);
         if (cargo) filtered = filtered.filter(p => p.cargo === cargo);
         if (busqueda) filtered = filtered.filter(p => `${p.nombre} ${p.apellido}`.toLowerCase().includes(busqueda) || p.email?.toLowerCase().includes(busqueda));
 
@@ -70,7 +70,7 @@ class TeamManager {
             <div class="team-card-body">
                 <div class="team-card-row"><i class="fas fa-envelope"></i><span>${app.escapeHtml(p.email || 'Sin email')}</span></div>
                 <div class="team-card-row"><i class="fas fa-phone"></i><span>${app.escapeHtml(p.telefono || 'Sin teléfono')}</span></div>
-                ${p.edificioAsignado ? `<div class="team-card-row"><i class="fas fa-building"></i><span class="edificio-tag" style="background:${edColor}20;color:${edColor};font-size:11px;padding:2px 8px;border-radius:4px">${app.escapeHtml(p.edificioAsignado)}</span></div>` : ''}
+                ${(p.edificiosAsignados?.length || p.edificioAsignado) ? `<div class="team-card-row"><i class="fas fa-building"></i><span style="display:flex;gap:4px;flex-wrap:wrap">${(p.edificiosAsignados || (p.edificioAsignado ? [p.edificioAsignado] : [])).map(e => { const c = getEdificioColor(e, edificios); return `<span class="edificio-tag" style="background:${c}20;color:${c};font-size:11px;padding:2px 8px;border-radius:4px">${app.escapeHtml(e)}</span>`; }).join('')}</span></div>` : ''}
                 ${p.fechaIngreso ? `<div class="team-card-row"><i class="fas fa-calendar"></i><span>Desde ${app.formatDate(p.fechaIngreso)}</span></div>` : ''}
             </div>
             <div class="team-card-footer">
@@ -91,6 +91,7 @@ class TeamManager {
         const certs = app.data.listas?.certificaciones || [];
         const selectedCerts = p?.certificaciones || [];
         const selectedHabs = p?.habilidades || [];
+        const selectedEds = p?.edificiosAsignados || (p?.edificioAsignado ? [p.edificioAsignado] : []);
         const isNew = !p;
 
         return `<form id="personalForm">
@@ -108,7 +109,15 @@ class TeamManager {
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="form-group"><label>Área de Trabajo</label><select id="pArea">${areas.map(a => `<option value="${a}" ${p?.area === a ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
-                <div class="form-group"><label>CIRION Asignado</label><select id="pEdificio"><option value="">Sin asignar</option>${eds.map(e => `<option value="${e}" ${p?.edificioAsignado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-building" style="color:#3b82f6"></i> CIRION Asignados</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:120px;overflow-y:auto;padding:4px">
+                    ${eds.map(e => `<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;cursor:pointer;background:${selectedEds.includes(e) ? '#dbeafe' : '#f8fafc'};border:1px solid ${selectedEds.includes(e) ? '#3b82f650' : '#e2e8f0'}">
+                        <input type="checkbox" class="p-edificio" value="${e}" ${selectedEds.includes(e) ? 'checked' : ''} style="accent-color:#3b82f6">
+                        <span style="font-size:12px;color:#334155">${e}</span>
+                    </label>`).join('')}
+                </div>
             </div>
             <div class="form-group"><label>Estado</label><select id="pEstado">${['Activo', 'Inactivo', 'Vacaciones', 'Permiso'].map(e => `<option value="${e}" ${p?.estado === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
             <div class="form-group"><label>Rol de acceso al sistema *</label><select id="pRol">
@@ -142,6 +151,7 @@ class TeamManager {
         try {
             const certs = [...document.querySelectorAll('.p-cert:checked')].map(cb => cb.value);
             const habs = [...document.querySelectorAll('.p-hab:checked')].map(cb => cb.value);
+            const eds = [...document.querySelectorAll('.p-edificio:checked')].map(cb => cb.value);
             const email = app.gv('pEmail');
             const password = app.gv('pPassword');
             const isNew = !id;
@@ -153,7 +163,7 @@ class TeamManager {
                 telefono: app.gv('pTelefono'),
                 cargo: app.gv('pCargo'),
                 area: app.gv('pArea'),
-                edificioAsignado: app.gv('pEdificio'),
+                edificiosAsignados: eds,
                 estado: app.gv('pEstado'),
                 rol: app.gv('pRol'),
                 fechaIngreso: app.gv('pFechaIngreso'),
@@ -566,7 +576,7 @@ class TeamManager {
                     <div style="display:grid;gap:6px">${matchByCargo.map(p => `
                         <div class="assign-card" onclick="teamManager.assignToTask('${tareaId}','${p.id}')">
                             <div class="team-avatar-sm" style="background:${CARGO_COLORS[p.cargo] || '#6366f1'}20;color:${CARGO_COLORS[p.cargo] || '#6366f1'}">${(p.nombre[0] || '').toUpperCase()}${(p.apellido[0] || '').toUpperCase()}</div>
-                            <div><strong>${app.escapeHtml(p.nombre)} ${app.escapeHtml(p.apellido)}</strong><br><small style="color:#64748b">${p.cargo} · ${p.edificioAsignado || 'Sin asignar'}</small></div>
+                            <div><strong>${app.escapeHtml(p.nombre)} ${app.escapeHtml(p.apellido)}</strong><br><small style="color:#64748b">${p.cargo} · ${(p.edificiosAsignados || (p.edificioAsignado ? [p.edificioAsignado] : [])).join(', ') || 'Sin asignar'}</small></div>
                         </div>
                     `).join('')}</div>
                 </div>` : ''}
