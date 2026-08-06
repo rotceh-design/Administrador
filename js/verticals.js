@@ -50,57 +50,6 @@ const VERTICALS = {
         pageSubtitle: 'Panel de control general',
     },
 
-    construccion: {
-        id: 'construccion',
-        name: 'Construcción',
-        subtitle: 'Projects',
-        icon: 'fas fa-hard-hat',
-        theme: {
-            '--primary': '#b45309',
-            '--primary-light': '#d97706',
-            '--primary-dark': '#92400e',
-        },
-        nav: [
-            { section: 'PRINCIPAL', items: [
-                { id: 'dashboard', icon: 'fas fa-chart-pie', label: 'Dashboard' },
-                { id: 'tareas', icon: 'fas fa-tasks', label: 'Tareas', badge: 'navTareasBadge' },
-                { id: 'cronograma', icon: 'fas fa-calendar-alt', label: 'Cronograma' },
-                { id: 'gantt', icon: 'fas fa-project-diagram', label: 'Carta Gantt' },
-            ]},
-            { section: 'OPERACIONES', items: [
-                { id: 'visitas', icon: 'fas fa-clipboard-check', label: 'Inspecciones', badge: 'navVisitasBadge' },
-                { id: 'incidencias', icon: 'fas fa-exclamation-triangle', label: 'No Conformidades', badge: 'navIncidenciasBadge', danger: true },
-                { id: 'informes', icon: 'fas fa-file-alt', label: 'Informes de Obra' },
-            ]},
-            { section: 'GESTIÓN', items: [
-                { id: 'equipo', icon: 'fas fa-users-cog', label: 'Brigada' },
-                { id: 'proveedores', icon: 'fas fa-truck', label: 'Proveedores' },
-                { id: 'fotos', icon: 'fas fa-camera', label: 'Fotografías' },
-            ]},
-            { section: 'HERRAMIENTAS', items: [
-                { id: 'emails', icon: 'fas fa-envelope', label: 'Correos' },
-                { id: 'cotizaciones', icon: 'fas fa-file-invoice-dollar', label: 'Presupuestos' },
-                { id: 'reportes', icon: 'fas fa-chart-bar', label: 'Reportes' },
-            ]},
-            { section: 'SISTEMA', items: [
-                { id: 'config', icon: 'fas fa-cog', label: 'Configuración' },
-            ]},
-        ],
-        kpis: [
-            { id: 'kpiEdificios', icon: 'fas fa-hard-hat', color: 'kpi-blue', label: 'Obras' },
-            { id: 'kpiCompletadas', icon: 'fas fa-check-circle', color: 'kpi-green', label: 'Completadas' },
-            { id: 'kpiPendientes', icon: 'fas fa-clock', color: 'kpi-yellow', label: 'Pendientes' },
-            { id: 'kpiIncidencias', icon: 'fas fa-exclamation-circle', color: 'kpi-red', label: 'No Conformidades' },
-            { id: 'kpiVisitasPend', icon: 'fas fa-calendar-check', color: 'kpi-purple', label: 'Inspecciones Pend.' },
-            { id: 'kpiHoy', icon: 'fas fa-calendar-day', color: 'kpi-orange', label: 'Actividad Hoy' },
-            { id: 'kpiVencidas', icon: 'fas fa-exclamation-triangle', color: 'kpi-darkred', label: 'Atrasadas' },
-            { id: 'kpiEnProgreso', icon: 'fas fa-spinner', color: 'kpi-teal', label: 'En Progreso' },
-        ],
-        roleDefault: 'Jefe de Obra',
-        filterLabel: 'Todas las Obras',
-        pageSubtitle: 'Gestión de proyectos de construcción',
-    },
-
     marketing: {
         id: 'marketing',
         name: 'Marketing',
@@ -150,6 +99,57 @@ const VERTICALS = {
         roleDefault: 'Marketing Manager',
         filterLabel: 'Todas las Campañas',
         pageSubtitle: 'Gestión de campañas y contenido',
+    },
+
+    mantencion: {
+        id: 'mantencion',
+        name: 'Mantención',
+        subtitle: 'Services',
+        icon: 'fas fa-tools',
+        theme: {
+            '--primary': '#059669',
+            '--primary-light': '#10b981',
+            '--primary-dark': '#047857',
+        },
+        nav: [
+            { section: 'PRINCIPAL', items: [
+                { id: 'dashboard', icon: 'fas fa-chart-pie', label: 'Dashboard' },
+                { id: 'tareas', icon: 'fas fa-tasks', label: 'Tareas', badge: 'navTareasBadge' },
+                { id: 'cronograma', icon: 'fas fa-calendar-alt', label: 'Cronograma' },
+                { id: 'gantt', icon: 'fas fa-project-diagram', label: 'Carta Gantt' },
+            ]},
+            { section: 'OPERACIONES', items: [
+                { id: 'visitas', icon: 'fas fa-clipboard-check', label: 'Órdenes de Trabajo', badge: 'navVisitasBadge' },
+                { id: 'incidencias', icon: 'fas fa-exclamation-triangle', label: 'Falllas', badge: 'navIncidenciasBadge', danger: true },
+                { id: 'informes', icon: 'fas fa-file-alt', label: 'Informes de Mantención' },
+            ]},
+            { section: 'GESTIÓN', items: [
+                { id: 'equipo', icon: 'fas fa-users-cog', label: 'Técnicos' },
+                { id: 'proveedores', icon: 'fas fa-truck', label: 'Proveedores' },
+                { id: 'fotos', icon: 'fas fa-camera', label: 'Fotografías' },
+            ]},
+            { section: 'HERRAMIENTAS', items: [
+                { id: 'emails', icon: 'fas fa-envelope', label: 'Correos' },
+                { id: 'cotizaciones', icon: 'fas fa-file-invoice-dollar', label: 'Presupuestos' },
+                { id: 'reportes', icon: 'fas fa-chart-bar', label: 'Reportes' },
+            ]},
+            { section: 'SISTEMA', items: [
+                { id: 'config', icon: 'fas fa-cog', label: 'Configuración' },
+            ]},
+        ],
+        kpis: [
+            { id: 'kpiEdificios', icon: 'fas fa-tools', color: 'kpi-blue', label: 'Activos' },
+            { id: 'kpiCompletadas', icon: 'fas fa-check-circle', color: 'kpi-green', label: 'Completadas' },
+            { id: 'kpiPendientes', icon: 'fas fa-clock', color: 'kpi-yellow', label: 'Pendientes' },
+            { id: 'kpiIncidencias', icon: 'fas fa-exclamation-circle', color: 'kpi-red', label: 'Falllas Abiertas' },
+            { id: 'kpiVisitasPend', icon: 'fas fa-calendar-check', color: 'kpi-purple', label: 'Órdenes Pendientes' },
+            { id: 'kpiHoy', icon: 'fas fa-calendar-day', color: 'kpi-orange', label: 'Actividad Hoy' },
+            { id: 'kpiVencidas', icon: 'fas fa-exclamation-triangle', color: 'kpi-darkred', label: 'Atrasadas' },
+            { id: 'kpiEnProgreso', icon: 'fas fa-spinner', color: 'kpi-teal', label: 'En Progreso' },
+        ],
+        roleDefault: 'Jefe de Mantención',
+        filterLabel: 'Todos los Activos',
+        pageSubtitle: 'Gestión de mantención y fallas',
     },
 };
 

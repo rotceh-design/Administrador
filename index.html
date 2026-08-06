@@ -28,11 +28,8 @@
             <div class="vertical-selector" style="display:none">
                 <select id="verticalSelect" onchange="setVertical(this.value)">
                     <option value="facility">Facility</option>
-                    <option value="construccion">Construcción</option>
                     <option value="marketing">Marketing</option>
-                    <option value="limpieza">Limpieza</option>
-                    <option value="seguridad">Seguridad</option>
-                    <option value="retail">Retail</option>
+                    <option value="mantencion">Mantención</option>
                 </select>
             </div>
 
@@ -796,36 +793,21 @@
                 <p>Elige tu industria y configura tu empresa</p>
             </div>
             <form id="registerForm" onsubmit="return handleRegister(event)">
-                <div class="vertical-grid">
+                <div class="vertical-grid" style="grid-template-columns:1fr 1fr 1fr">
                     <button type="button" class="vertical-option active" data-vertical="facility" onclick="selectVertical(this)">
                         <span class="vertical-icon">🏢</span>
                         <span class="vertical-name">Facility</span>
                         <span class="vertical-desc">Mantención de instalaciones</span>
                     </button>
-                    <button type="button" class="vertical-option" data-vertical="construccion" onclick="selectVertical(this)">
-                        <span class="vertical-icon">🏗️</span>
-                        <span class="vertical-name">Construcción</span>
-                        <span class="vertical-desc">Obras y proyectos</span>
-                    </button>
                     <button type="button" class="vertical-option" data-vertical="marketing" onclick="selectVertical(this)">
                         <span class="vertical-icon">📢</span>
                         <span class="vertical-name">Marketing</span>
-                        <span class="vertical-desc">Campañas y retail</span>
+                        <span class="vertical-desc">Campañas y contenido</span>
                     </button>
-                    <button type="button" class="vertical-option" data-vertical="limpieza" onclick="selectVertical(this)">
-                        <span class="vertical-icon">🧹</span>
-                        <span class="vertical-name">Limpieza</span>
-                        <span class="vertical-desc">Servicios de aseo</span>
-                    </button>
-                    <button type="button" class="vertical-option" data-vertical="seguridad" onclick="selectVertical(this)">
-                        <span class="vertical-icon">🛡️</span>
-                        <span class="vertical-name">Seguridad</span>
-                        <span class="vertical-desc">Vigilancia y control</span>
-                    </button>
-                    <button type="button" class="vertical-option" data-vertical="retail" onclick="selectVertical(this)">
-                        <span class="vertical-icon">🛒</span>
-                        <span class="vertical-name">Retail</span>
-                        <span class="vertical-desc">Tiendas y ventas</span>
+                    <button type="button" class="vertical-option" data-vertical="mantencion" onclick="selectVertical(this)">
+                        <span class="vertical-icon">🔧</span>
+                        <span class="vertical-name">Mantención</span>
+                        <span class="vertical-desc">Servicios y fallas</span>
                     </button>
                 </div>
                 <div class="login-field">
