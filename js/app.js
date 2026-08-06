@@ -63,6 +63,14 @@ class MaintenanceApp {
                 await quoteManager.init();
                 this.populateFilters();
                 this.bindEvents();
+
+                // Initialize vertical
+                const v = getVertical();
+                document.getElementById('verticalSelect').value = currentVertical;
+                applyVerticalTheme(v);
+                renderSidebar(v);
+                renderKpis(v);
+
                 this.renderDashboard();
                 this.updateSidebarBadges();
                 this.updateNotificationBadge();
@@ -123,7 +131,6 @@ class MaintenanceApp {
     }
 
     bindEvents() {
-        document.querySelectorAll('.nav-item').forEach(i => i.addEventListener('click', e => { e.preventDefault(); this.navigateTo(i.dataset.section); }));
         document.getElementById('toggleSidebar')?.addEventListener('click', () => document.getElementById('sidebar').classList.toggle('collapsed'));
         document.getElementById('mobileMenu')?.addEventListener('click', () => this.openSidebar());
         document.getElementById('addNewBtn')?.addEventListener('click', () => this.showAddModal());

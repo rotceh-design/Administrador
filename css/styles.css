@@ -97,6 +97,36 @@ body {
 .sidebar-nav::-webkit-scrollbar { width: 4px; }
 .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
 
+/* =================== VERTICAL SELECTOR =================== */
+.vertical-selector {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.vertical-selector select {
+    width: 100%;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+}
+.vertical-selector select:hover {
+    background-color: rgba(255,255,255,0.2);
+}
+.vertical-selector select option {
+    background: var(--primary-dark);
+    color: white;
+}
+
 .nav-section {
     padding: 0.75rem 1.5rem 0.5rem;
     font-size: 0.65rem; font-weight: 600; letter-spacing: 1px;
@@ -1408,69 +1438,8 @@ body {
     font-size: 12px;
     color: #94a3b8;
 }
-.login-role-selector {
-    margin-bottom: 20px;
-}
-.login-role-label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: #475569;
-    margin-bottom: 8px;
-}
-.login-role-label i {
-    margin-right: 4px;
-    color: #1e40af;
-}
-.login-role-options {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-.login-role-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 14px 8px;
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    background: #f8fafc;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: center;
-}
-.login-role-btn i {
-    font-size: 22px;
-    color: #94a3b8;
-    margin-bottom: 2px;
-    transition: color 0.2s;
-}
-.login-role-name {
-    font-size: 12px;
-    font-weight: 700;
-    color: #475569;
-    transition: color 0.2s;
-}
-.login-role-desc {
-    font-size: 10px;
-    color: #94a3b8;
-    line-height: 1.2;
-}
-.login-role-btn:hover {
-    border-color: #3b82f6;
-    background: #eff6ff;
-}
-.login-role-btn.active {
-    border-color: #1e40af;
-    background: #eff6ff;
-    box-shadow: 0 0 0 3px rgba(30,64,175,0.1);
-}
-.login-role-btn.active i {
-    color: #1e40af;
-}
-.login-role-btn.active .login-role-name {
-    color: #1e40af;
+.login-footer a {
+    text-decoration: none;
 }
 .logout-btn {
     width: 100%;
