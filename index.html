@@ -932,27 +932,73 @@
                 let empresaId = null;
                 let empresaName = '';
                 try {
-                    const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js");
+                    const { collection, query, where, getDocs, doc, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js");
                     const q = query(collection(window._firestore, 'personal'), where('email', '==', email));
                     const snapshot = await getDocs(q);
                     if (!snapshot.empty) {
                         const userData = snapshot.docs[0].data();
+                        const personalDocId = snapshot.docs[0].id;
                         if (userData.rol) userRole = userData.rol;
                         if (userData.vertical) userVertical = userData.vertical;
-                        if (userData.empresaId) {
-                            empresaId = userData.empresaId;
+
+                        // Get empresaId from personal doc or use the auth user's uid
+                        empresaId = userData.empresaId || null;
+
+                        // If no empresaId in personal doc, assign one using auth UID
+                        if (!empresaId && window._auth.currentUser) {
+                            empresaId = window._auth.currentUser.uid;
+                            await setDoc(doc(window._firestore, 'personal', personalDocId), { ...userData, empresaId: empresaId }, { merge: true });
                             localStorage.setItem('empresaId', empresaId);
-                            // Load empresa data
-                            const empSnap = await getDocs(query(collection(window._firestore, 'empresas'), where('__name__', '==', empresaId)));
-                            if (!empSnap.empty) {
-                                const empData = empSnap.docs[0].data();
+                        } else if (empresaId) {
+                            localStorage.setItem('empresaId', empresaId);
+                        }
+
+                        // Load empresa data
+                        if (empresaId) {
+                            const empDoc = await getDoc(doc(window._firestore, 'empresas', empresaId));
+                            if (empDoc.exists()) {
+                                const empData = empDoc.data();
                                 if (empData.nombre) empresaName = empData.nombre;
                                 if (empData.vertical) userVertical = empData.vertical;
+                            } else {
+                                // Create empresa doc for legacy user
+                                await setDoc(doc(window._firestore, 'empresas', empresaId), {
+                                    nombre: 'Mi Empresa',
+                                    email: email,
+                                    vertical: userVertical,
+                                    plan: 'free',
+                                    branding: { primaryColor: '#1e40af', secondaryColor: '#7c3aed' },
+                                    createdAt: new Date().toISOString(),
+                                });
+                                empresaName = 'Mi Empresa';
                             }
+                        }
+                    } else {
+                        // No personal doc found - create one
+                        if (window._auth.currentUser) {
+                            empresaId = window._auth.currentUser.uid;
+                            await setDoc(doc(window._firestore, 'personal', empresaId), {
+                                nombre: email.split('@')[0],
+                                email: email,
+                                rol: 'Admin',
+                                vertical: 'facility',
+                                empresaId: empresaId,
+                                createdAt: new Date().toISOString(),
+                            });
+                            await setDoc(doc(window._firestore, 'empresas', empresaId), {
+                                nombre: 'Mi Empresa',
+                                email: email,
+                                vertical: 'facility',
+                                plan: 'free',
+                                branding: { primaryColor: '#1e40af', secondaryColor: '#7c3aed' },
+                                createdAt: new Date().toISOString(),
+                            });
+                            localStorage.setItem('empresaId', empresaId);
+                            empresaName = 'Mi Empresa';
                         }
                     }
                 } catch (e) {
-                    console.log('No se encontró rol/vertical/empresa en BD, usando defaults');
+                    console.log('Error loading user data:', e);
                 }
 
                 localStorage.setItem('fm_user_role', userRole);
