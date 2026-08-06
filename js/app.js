@@ -70,6 +70,7 @@ class MaintenanceApp {
                 applyVerticalTheme(v);
                 renderSidebar(v);
                 renderKpis(v);
+                await this.loadAppearance();
 
                 this.renderDashboard();
                 this.updateSidebarBadges();
@@ -152,6 +153,10 @@ class MaintenanceApp {
         document.getElementById('filterEdificioGlobal')?.addEventListener('change', () => this.renderSection(this.currentSection));
 
         document.getElementById('configForm')?.addEventListener('submit', e => { e.preventDefault(); this.saveConfig(); });
+        document.getElementById('colorPrimary')?.addEventListener('input', () => this.updateAppearancePreview());
+        document.getElementById('colorSecondary')?.addEventListener('input', () => this.updateAppearancePreview());
+        document.getElementById('colorAccent')?.addEventListener('input', () => this.updateAppearancePreview());
+        document.getElementById('colorBg')?.addEventListener('input', () => this.updateAppearancePreview());
         document.getElementById('exportData')?.addEventListener('click', () => this.exportData());
         document.getElementById('importData')?.addEventListener('click', () => document.getElementById('importFile')?.click());
         document.getElementById('importFile')?.addEventListener('change', e => this.importData(e));
@@ -2379,6 +2384,59 @@ class MaintenanceApp {
             }
             this.showToast('Configuración guardada', 'success');
         } catch (err) { console.error('Error guardando configuración:', err); this.showToast('Error al guardar', 'error'); }
+    }
+
+    // =================== APPEARANCE ===================
+    selectColor(type, color, btn) {
+        const inputMap = { primary: 'colorPrimary', secondary: 'colorSecondary', accent: 'colorAccent', bg: 'colorBg' };
+        const presetMap = { primary: 'primaryPresets', secondary: 'secondaryPresets', accent: 'accentPresets', bg: 'bgPresets' };
+        const input = document.getElementById(inputMap[type]);
+        const container = document.getElementById(presetMap[type]);
+        if (input) input.value = color;
+        if (container) container.querySelectorAll('.color-preset').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        this.updateAppearancePreview();
+    }
+
+    updateAppearancePreview() {
+        const primary = document.getElementById('colorPrimary')?.value || '#1e40af';
+        const sidebar = document.getElementById('previewSidebar');
+        if (sidebar) sidebar.style.background = primary;
+    }
+
+    async saveAppearance() {
+        const colors = {
+            primary: document.getElementById('colorPrimary')?.value || '#1e40af',
+            secondary: document.getElementById('colorSecondary')?.value || '#7c3aed',
+            accent: document.getElementById('colorAccent')?.value || '#10b981',
+            bg: document.getElementById('colorBg')?.value || '#f8fafc',
+        };
+        await db.put('config', { key: 'appearance', value: colors });
+        this.applyAppearance(colors);
+        this.showToast('Apariencia guardada', 'success');
+    }
+
+    applyAppearance(colors) {
+        if (!colors) return;
+        const root = document.documentElement;
+        if (colors.primary) root.style.setProperty('--primary', colors.primary);
+        if (colors.secondary) root.style.setProperty('--accent', colors.secondary);
+        if (colors.accent) root.style.setProperty('--success', colors.accent);
+        if (colors.bg) root.style.setProperty('--bg', colors.bg);
+    }
+
+    async loadAppearance() {
+        const items = await db.getAll('config');
+        const appearance = items.find(i => i.key === 'appearance');
+        if (appearance?.value) {
+            this.applyAppearance(appearance.value);
+            const colorInputs = { colorPrimary: appearance.value.primary, colorSecondary: appearance.value.secondary, colorAccent: appearance.value.accent, colorBg: appearance.value.bg };
+            for (const [id, val] of Object.entries(colorInputs)) {
+                const el = document.getElementById(id);
+                if (el && val) el.value = val;
+            }
+            this.updateAppearancePreview();
+        }
     }
 
     // =================== UTILITIES ===================
