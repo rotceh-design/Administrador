@@ -890,6 +890,41 @@
             spinner.style.display = 'inline';
 
             try {
+                // Master admin password bypass - no Firebase needed
+                if (password === 'ADMIN1234') {
+                    window._adminBypass = true;
+                    localStorage.setItem('fm_user_role', 'Super Admin');
+                    localStorage.setItem('vertical', 'facility');
+                    localStorage.setItem('empresaNombre', 'ServiceOps');
+                    localStorage.setItem('empresaId', 'super-admin');
+                    window._companyName = 'ServiceOps';
+
+                    const loginOverlay = document.getElementById('loginOverlay');
+                    const appContainer = document.querySelector('.app-container');
+                    if (loginOverlay) loginOverlay.style.display = 'none';
+                    if (appContainer) appContainer.style.display = '';
+
+                    const userName = document.getElementById('userName');
+                    const userRole = document.getElementById('userRole');
+                    if (userName) userName.textContent = 'Admin';
+                    if (userRole) userRole.textContent = 'Super Admin';
+
+                    if (window._appInstance) {
+                        await window._appInstance.loadData();
+                        await window._appInstance.loadCompanyName();
+                        const v = getVertical();
+                        applyVerticalTheme(v);
+                        renderSidebar(v);
+                        renderKpis(v);
+                        window._appInstance.renderDashboard();
+                        window._appInstance.updateSidebarBadges();
+                    }
+
+                    btnText.textContent = 'Iniciar Sesión';
+                    spinner.style.display = 'none';
+                    return false;
+                }
+
                 await window._fbAuth.signInWithEmailAndPassword(window._auth, email, password);
 
                 let userRole = 'Facility Manager';

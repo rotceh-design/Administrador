@@ -50,6 +50,9 @@ class MaintenanceApp {
         const appContainer = document.querySelector('.app-container');
 
         window._fbAuth.onAuthStateChanged(window._auth, async (user) => {
+            // Skip if admin bypass is active
+            if (window._adminBypass) return;
+
             if (user) {
                 // User is logged in
                 loginOverlay.style.display = 'none';
@@ -2630,6 +2633,7 @@ class MaintenanceApp {
 }
 
 const app = new MaintenanceApp();
+window._appInstance = app;
 document.addEventListener('DOMContentLoaded', () => app.init());
 
 // Global error handler
