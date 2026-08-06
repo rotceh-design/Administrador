@@ -945,6 +945,9 @@
             try {
                 await window._fbAuth.signOut(window._auth);
                 localStorage.removeItem('fm_user_role');
+                localStorage.removeItem('empresaId');
+                localStorage.removeItem('empresaNombre');
+                localStorage.removeItem('vertical');
             } catch (err) {
                 console.error('Logout error:', err);
             }

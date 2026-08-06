@@ -63,6 +63,7 @@ class MaintenanceApp {
                 if (userRole) userRole.textContent = role;
 
                 await this.loadData();
+                await db.backfillEmpresaId();
                 await quoteManager.init();
                 this.populateFilters();
                 this.bindEvents();

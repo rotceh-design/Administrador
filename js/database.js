@@ -34,6 +34,27 @@ class Database {
         });
     }
 
+    async backfillEmpresaId() {
+        if (!this.empresaId) return;
+        const stores = ['tareas', 'visitas', 'incidencias', 'proveedores', 'fotos', 'cotizaciones', 'notificaciones', 'informesDiarios', 'personal', 'config', 'listas'];
+        const { query: fbQuery, where } = this._fb;
+        for (const storeName of stores) {
+            try {
+                const snap = await this._fb.getDocs(this._col(storeName));
+                const batch = this._fb.writeBatch(this.db);
+                let count = 0;
+                snap.docs.forEach(d => {
+                    const data = d.data();
+                    if (!data.empresaId) {
+                        batch.update(d.ref, { empresaId: this.empresaId });
+                        count++;
+                    }
+                });
+                if (count > 0) await batch.commit();
+            } catch (e) { /* skip stores without empresaId field */ }
+        }
+    }
+
     _col(name) {
         return this._fb.collection(this.db, name);
     }

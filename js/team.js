@@ -169,7 +169,9 @@ class TeamManager {
                 fechaIngreso: app.gv('pFechaIngreso'),
                 certificaciones: certs,
                 habilidades: habs,
-                observaciones: app.gv('pObservaciones')
+                observaciones: app.gv('pObservaciones'),
+                empresaId: localStorage.getItem('empresaId') || null,
+                vertical: localStorage.getItem('vertical') || 'facility',
             };
 
             if (isNew && email && password) {
