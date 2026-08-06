@@ -196,7 +196,7 @@ function renderSidebar(v) {
     const logoName = document.querySelector('.logo-name');
     const logoSubtitle = document.querySelector('.logo-subtitle');
     const logoIcon = document.querySelector('.logo-icon i');
-    if (logoName) logoName.textContent = v.name;
+    if (logoName) logoName.textContent = window._companyName || v.name;
     if (logoSubtitle) logoSubtitle.textContent = v.subtitle;
     if (logoIcon) logoIcon.className = v.icon;
 
@@ -211,7 +211,7 @@ function renderSidebar(v) {
 
     const subtitle = document.getElementById('pageSubtitle');
     if (subtitle && app && app.currentSection === 'dashboard') {
-        subtitle.textContent = v.pageSubtitle;
+        subtitle.textContent = (window._companyName ? window._companyName + ' — ' : '') + v.pageSubtitle;
     }
 
     nav.querySelectorAll('.nav-item').forEach(item => {

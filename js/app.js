@@ -42,6 +42,9 @@ class MaintenanceApp {
     async init() {
         await db.init();
 
+        // Load company name for login screen
+        await this.loadCompanyName();
+
         // Auth state listener
         const loginOverlay = document.getElementById('loginOverlay');
         const appContainer = document.querySelector('.app-container');
@@ -63,6 +66,9 @@ class MaintenanceApp {
                 await quoteManager.init();
                 this.populateFilters();
                 this.bindEvents();
+
+                // Load company name
+                await this.loadCompanyName();
 
                 // Initialize vertical
                 const v = getVertical();
@@ -2328,6 +2334,37 @@ class MaintenanceApp {
     }
 
     // =================== CONFIG ===================
+    async loadCompanyName() {
+        const items = await db.getAll('config');
+        const c = {};
+        items.forEach(i => c[i.key] = i.value);
+        window._companyName = c.nombreEmpresa || '';
+        this.updateCompanyNameDisplay();
+    }
+
+    updateCompanyNameDisplay() {
+        const name = window._companyName;
+        if (!name) return;
+
+        // Sidebar logo
+        const logoName = document.querySelector('.sidebar .logo-name');
+        const logoSubtitle = document.querySelector('.sidebar .logo-subtitle');
+        if (logoName) logoName.textContent = name;
+        if (logoSubtitle) logoSubtitle.textContent = getVertical().subtitle;
+
+        // Dashboard subtitle
+        const subtitle = document.getElementById('pageSubtitle');
+        if (subtitle && this.currentSection === 'dashboard') {
+            subtitle.textContent = `${name} — Panel de control`;
+        }
+
+        // Login screen
+        const loginTitle = document.getElementById('loginTitle');
+        const loginSub = document.getElementById('loginSubtitle');
+        if (loginTitle) loginTitle.textContent = name;
+        if (loginSub) loginSub.textContent = 'Plataforma de Gestión Multi-Vertical';
+    }
+
     async renderConfig() {
         const items = await db.getAll('config'); const c = {}; items.forEach(i => c[i.key] = i.value);
         document.getElementById('nombreEmpresa').value = c.nombreEmpresa || '';
@@ -2382,6 +2419,7 @@ class MaintenanceApp {
                 const el = document.getElementById(v);
                 if (el) await db.put('config', { key: k, value: el.value });
             }
+            await this.loadCompanyName();
             this.showToast('Configuración guardada', 'success');
         } catch (err) { console.error('Error guardando configuración:', err); this.showToast('Error al guardar', 'error'); }
     }
