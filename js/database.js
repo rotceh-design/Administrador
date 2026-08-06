@@ -5,6 +5,10 @@ class Database {
         this._ready = false;
     }
 
+    get empresaId() {
+        return localStorage.getItem('empresaId') || null;
+    }
+
     async init() {
         if (this._ready) return;
 
@@ -40,14 +44,24 @@ class Database {
 
     async getAll(storeName) {
         try {
-            const snap = await this._fb.getDocs(this._col(storeName));
+            const { query: fbQuery, where } = this._fb;
+            let q = this._col(storeName);
+            if (this.empresaId) {
+                q = fbQuery(q, where('empresaId', '==', this.empresaId));
+            }
+            const snap = await this._fb.getDocs(q);
             return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(d => !d.isDeleted);
         } catch (e) { console.error(`Error leyendo ${storeName}:`, e); return []; }
     }
 
     async getAllIncludingDeleted(storeName) {
         try {
-            const snap = await this._fb.getDocs(this._col(storeName));
+            const { query: fbQuery, where } = this._fb;
+            let q = this._col(storeName);
+            if (this.empresaId) {
+                q = fbQuery(q, where('empresaId', '==', this.empresaId));
+            }
+            const snap = await this._fb.getDocs(q);
             return snap.docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) { console.error(`Error leyendo ${storeName}:`, e); return []; }
     }
@@ -70,6 +84,9 @@ class Database {
         try {
             const id = data.id || data.key || String(Date.now());
             const docData = { ...data, id };
+            if (this.empresaId && !docData.empresaId) {
+                docData.empresaId = this.empresaId;
+            }
             await this._fb.setDoc(this._doc(storeName, id), docData);
             return id;
         } catch (e) { console.error(`Error guardando en ${storeName}:`, e); throw e; }
@@ -107,16 +124,28 @@ class Database {
 
     async clear(storeName) {
         try {
-            const snap = await this._fb.getDocs(this._col(storeName));
+            const { query: fbQuery, where } = this._fb;
+            let q = this._col(storeName);
+            if (this.empresaId) {
+                q = fbQuery(q, where('empresaId', '==', this.empresaId));
+            }
+            const snap = await this._fb.getDocs(q);
             const batch = this._fb.writeBatch(this.db);
             snap.docs.forEach(d => batch.delete(d.ref));
             await batch.commit();
-        } catch (e) { console.error(`Error limpiando ${storeName}:`, e); throw e; }
+        } catch (e) { console.error(`Error limpiando ${storeName}:`, e); }
     }
 
     async count(storeName) {
-        const snap = await this._fb.getDocs(this._col(storeName));
-        return snap.size;
+        try {
+            const { query: fbQuery, where } = this._fb;
+            let q = this._col(storeName);
+            if (this.empresaId) {
+                q = fbQuery(q, where('empresaId', '==', this.empresaId));
+            }
+            const snap = await this._fb.getDocs(q);
+            return snap.size;
+        } catch (e) { return 0; }
     }
 
     async importAll(data) {

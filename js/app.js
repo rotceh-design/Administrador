@@ -2338,7 +2338,29 @@ class MaintenanceApp {
         const items = await db.getAll('config');
         const c = {};
         items.forEach(i => c[i.key] = i.value);
-        window._companyName = c.nombreEmpresa || '';
+
+        // Also try to load from empresa doc in Firestore
+        const empresaId = localStorage.getItem('empresaId');
+        const empresaNombre = localStorage.getItem('empresaNombre');
+        if (empresaNombre) {
+            window._companyName = empresaNombre;
+        } else if (c.nombreEmpresa) {
+            window._companyName = c.nombreEmpresa;
+        }
+
+        // Load branding from empresa doc
+        if (empresaId && window._firestore && window._fb) {
+            try {
+                const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js");
+                const snap = await getDoc(doc(window._firestore, 'empresas', empresaId));
+                if (snap.exists()) {
+                    const emp = snap.data();
+                    if (emp.nombre) window._companyName = emp.nombre;
+                    if (emp.branding) this.applyAppearance(emp.branding);
+                }
+            } catch (e) { console.log('No se pudo cargar config de empresa'); }
+        }
+
         this.updateCompanyNameDisplay();
     }
 

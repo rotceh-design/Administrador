@@ -25,7 +25,7 @@
                 <button class="toggle-sidebar" id="toggleSidebar"><i class="fas fa-bars"></i></button>
             </div>
 
-            <div class="vertical-selector">
+            <div class="vertical-selector" style="display:none">
                 <select id="verticalSelect" onchange="setVertical(this.value)">
                     <option value="facility">Facility</option>
                     <option value="construccion">Construcción</option>
@@ -894,25 +894,37 @@
 
                 let userRole = 'Facility Manager';
                 let userVertical = 'facility';
+                let empresaId = null;
+                let empresaName = '';
                 try {
                     const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js");
                     const q = query(collection(window._firestore, 'personal'), where('email', '==', email));
                     const snapshot = await getDocs(q);
                     if (!snapshot.empty) {
                         const userData = snapshot.docs[0].data();
-                        if (userData.rol) {
-                            userRole = userData.rol;
-                        }
-                        if (userData.vertical) {
-                            userVertical = userData.vertical;
+                        if (userData.rol) userRole = userData.rol;
+                        if (userData.vertical) userVertical = userData.vertical;
+                        if (userData.empresaId) {
+                            empresaId = userData.empresaId;
+                            localStorage.setItem('empresaId', empresaId);
+                            // Load empresa data
+                            const empSnap = await getDocs(query(collection(window._firestore, 'empresas'), where('__name__', '==', empresaId)));
+                            if (!empSnap.empty) {
+                                const empData = empSnap.docs[0].data();
+                                if (empData.nombre) empresaName = empData.nombre;
+                                if (empData.vertical) userVertical = empData.vertical;
+                            }
                         }
                     }
                 } catch (e) {
-                    console.log('No se encontró rol/vertical en BD, usando defaults');
+                    console.log('No se encontró rol/vertical/empresa en BD, usando defaults');
                 }
 
                 localStorage.setItem('fm_user_role', userRole);
                 localStorage.setItem('vertical', userVertical);
+                if (empresaName) {
+                    localStorage.setItem('empresaNombre', empresaName);
+                }
             } catch (err) {
                 const messages = {
                     'auth/user-not-found': 'Usuario no encontrado',
